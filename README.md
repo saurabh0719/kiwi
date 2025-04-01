@@ -9,8 +9,6 @@ A command-line interface for interacting with Large Language Models (LLMs) in te
 - **Shell Command Assistant**: Get command suggestions for tasks
 - **Execute Mode**: Run one-off prompts for quick answers
 - **Built-in Tools**: Access filesystem operations and system information
-- **Safe Mode**: Command confirmation before execution
-- **Flexible Configuration**: Environment variables, flags, or config file
 
 ## Building and Installation
 
@@ -168,4 +166,4 @@ llm:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the Apache-2.0 License - see the LICENSE file for details. 
