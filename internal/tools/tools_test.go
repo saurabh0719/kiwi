@@ -31,12 +31,16 @@ func TestFileSystemTool(t *testing.T) {
 		"operation": "read",
 		"path":      testFile,
 	}
-	content, err := fsTool.Execute(context.Background(), args)
+	result, err := fsTool.Execute(context.Background(), args)
 	if err != nil {
 		t.Errorf("Execute(read) failed: %v", err)
 	}
-	if content != testContent {
-		t.Errorf("Execute(read) content mismatch: got %q, want %q", content, testContent)
+	if result.Output != testContent {
+		t.Errorf("Execute(read) content mismatch: got %q, want %q", result.Output, testContent)
+	}
+	// Verify the toolMethod is correctly set
+	if result.ToolMethod != "read" {
+		t.Errorf("Execute(read) toolMethod mismatch: got %q, want %q", result.ToolMethod, "read")
 	}
 
 	// Test listing directory
@@ -44,14 +48,18 @@ func TestFileSystemTool(t *testing.T) {
 		"operation": "list",
 		"path":      tmpDir,
 	}
-	files, err := fsTool.Execute(context.Background(), args)
+	result, err = fsTool.Execute(context.Background(), args)
 	if err != nil {
 		t.Errorf("Execute(list) failed: %v", err)
 	}
 
 	// Check if the listed files contain our test file
-	if !strings.Contains(files, "test.txt") {
-		t.Errorf("Execute(list) should contain test.txt, got: %v", files)
+	if !strings.Contains(result.Output, "test.txt") {
+		t.Errorf("Execute(list) should contain test.txt, got: %v", result.Output)
+	}
+	// Verify the toolMethod is correctly set
+	if result.ToolMethod != "list" {
+		t.Errorf("Execute(list) toolMethod mismatch: got %q, want %q", result.ToolMethod, "list")
 	}
 }
 
@@ -60,15 +68,18 @@ func TestShellTool(t *testing.T) {
 
 	// Test simple echo command
 	args := map[string]interface{}{
-		"command": "echo",
-		"args":    []interface{}{"test"},
+		"command": "echo test",
 	}
-	output, err := shellTool.Execute(context.Background(), args)
+	result, err := shellTool.Execute(context.Background(), args)
 	if err != nil {
 		t.Errorf("Execute failed: %v", err)
 	}
-	if !strings.Contains(output, "test") {
-		t.Errorf("Execute output should contain 'test', got %q", output)
+	if !strings.Contains(result.Output, "test") {
+		t.Errorf("Execute output should contain 'test', got %q", result.Output)
+	}
+	// Verify the toolMethod is correctly set
+	if result.ToolMethod != "echo" {
+		t.Errorf("Execute toolMethod mismatch: got %q, want %q", result.ToolMethod, "echo")
 	}
 }
 
@@ -79,28 +90,36 @@ func TestSystemInfoTool(t *testing.T) {
 	args := map[string]interface{}{
 		"type": "basic",
 	}
-	info, err := sysInfo.Execute(context.Background(), args)
+	result, err := sysInfo.Execute(context.Background(), args)
 	if err != nil {
 		t.Errorf("Execute(basic) failed: %v", err)
 	}
 
 	// Check if basic information is included
-	if !strings.Contains(info, "os:") || !strings.Contains(info, "arch:") {
-		t.Error("Execute(basic) missing required fields in output:", info)
+	if !strings.Contains(result.Output, "os:") || !strings.Contains(result.Output, "arch:") {
+		t.Error("Execute(basic) missing required fields in output:", result.Output)
+	}
+	// Verify the toolMethod is correctly set
+	if result.ToolMethod != "basic" {
+		t.Errorf("Execute toolMethod mismatch: got %q, want %q", result.ToolMethod, "basic")
 	}
 
 	// Test memory info
 	args = map[string]interface{}{
 		"type": "memory",
 	}
-	info, err = sysInfo.Execute(context.Background(), args)
+	result, err = sysInfo.Execute(context.Background(), args)
 	if err != nil {
 		t.Errorf("Execute(memory) failed: %v", err)
 	}
 
 	// Check if memory information is included
-	if !strings.Contains(info, "alloc:") || !strings.Contains(info, "sys:") {
-		t.Error("Execute(memory) missing required fields in output:", info)
+	if !strings.Contains(result.Output, "alloc:") || !strings.Contains(result.Output, "sys:") {
+		t.Error("Execute(memory) missing required fields in output:", result.Output)
+	}
+	// Verify the toolMethod is correctly set
+	if result.ToolMethod != "memory" {
+		t.Errorf("Execute toolMethod mismatch: got %q, want %q", result.ToolMethod, "memory")
 	}
 }
 

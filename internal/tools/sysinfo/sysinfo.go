@@ -12,51 +12,73 @@ import (
 )
 
 // Tool provides system information
-type Tool struct{}
+type Tool struct {
+	name        string
+	description string
+	parameters  map[string]core.Parameter
+}
 
 // New creates a new SystemInfoTool
 func New() *Tool {
-	return &Tool{}
-}
-
-// Name returns the name of the tool
-func (t *Tool) Name() string {
-	return "sysinfo"
-}
-
-// Description returns the description of the tool
-func (t *Tool) Description() string {
-	return "Provides system information and status"
-}
-
-// Parameters returns the parameters for the tool
-func (t *Tool) Parameters() map[string]core.Parameter {
-	return map[string]core.Parameter{
+	parameters := map[string]core.Parameter{
 		"type": {
 			Type:        "string",
 			Description: "Type of information to retrieve (basic, memory, env)",
 			Required:    true,
 		},
 	}
+
+	return &Tool{
+		name:        "sysinfo",
+		description: "Provides system information and status",
+		parameters:  parameters,
+	}
+}
+
+// Name returns the name of the tool
+func (t *Tool) Name() string {
+	return t.name
+}
+
+// Description returns the description of the tool
+func (t *Tool) Description() string {
+	return t.description
+}
+
+// Parameters returns the parameters for the tool
+func (t *Tool) Parameters() map[string]core.Parameter {
+	return t.parameters
 }
 
 // Execute executes the tool with the given arguments
-func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
 	infoType, ok := args["type"].(string)
 	if !ok {
-		return "", fmt.Errorf("type must be a string")
+		return core.ToolExecutionResult{}, fmt.Errorf("type must be a string")
 	}
+
+	var output string
+	var err error
 
 	switch infoType {
 	case "basic":
-		return t.getBasicInfo()
+		output, err = t.getBasicInfo()
 	case "memory":
-		return t.getMemoryInfo()
+		output, err = t.getMemoryInfo()
 	case "env":
-		return t.getEnvironmentInfo()
+		output, err = t.getEnvironmentInfo()
 	default:
-		return "", fmt.Errorf("unknown info type: %s", infoType)
+		return core.ToolExecutionResult{}, fmt.Errorf("unknown info type: %s", infoType)
 	}
+
+	if err != nil {
+		return core.ToolExecutionResult{}, err
+	}
+
+	return core.ToolExecutionResult{
+		ToolMethod: infoType,
+		Output:     output,
+	}, nil
 }
 
 // getBasicInfo returns basic system information

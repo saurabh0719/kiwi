@@ -114,15 +114,18 @@ func RegisterStandardTools(registry *Registry) {
 
 // NewFileSystemTool creates a new FileSystemTool
 func NewFileSystemTool() core.Tool {
+	// Direct implementation that returns ToolExecutionResult
 	return filesystem.New()
 }
 
 // NewShellTool creates a new ShellTool
 func NewShellTool() core.Tool {
+	// Direct implementation that returns ToolExecutionResult
 	return shell.New()
 }
 
 // NewSystemInfoTool creates a new SystemInfoTool
 func NewSystemInfoTool() core.Tool {
+	// Direct implementation that returns ToolExecutionResult
 	return sysinfo.New()
 }

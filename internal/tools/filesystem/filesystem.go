@@ -11,26 +11,15 @@ import (
 )
 
 // Tool provides file system operations
-type Tool struct{}
+type Tool struct {
+	name        string
+	description string
+	parameters  map[string]core.Parameter
+}
 
 // New creates a new FileSystemTool
 func New() *Tool {
-	return &Tool{}
-}
-
-// Name returns the name of the tool
-func (t *Tool) Name() string {
-	return "filesystem"
-}
-
-// Description returns the description of the tool
-func (t *Tool) Description() string {
-	return "Provides file system operations like listing files and reading file contents"
-}
-
-// Parameters returns the parameters for the tool
-func (t *Tool) Parameters() map[string]core.Parameter {
-	return map[string]core.Parameter{
+	parameters := map[string]core.Parameter{
 		"operation": {
 			Type:        "string",
 			Description: "Operation to perform (list or read)",
@@ -42,34 +31,67 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 			Required:    true,
 		},
 	}
+
+	return &Tool{
+		name:        "filesystem",
+		description: "Provides file system operations like listing files and reading file contents",
+		parameters:  parameters,
+	}
+}
+
+// Name returns the name of the tool
+func (t *Tool) Name() string {
+	return t.name
+}
+
+// Description returns the description of the tool
+func (t *Tool) Description() string {
+	return t.description
+}
+
+// Parameters returns the parameters for the tool
+func (t *Tool) Parameters() map[string]core.Parameter {
+	return t.parameters
 }
 
 // Execute executes the tool with the given arguments
-func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
 	operation, ok := args["operation"].(string)
 	if !ok {
-		return "", fmt.Errorf("operation must be a string")
+		return core.ToolExecutionResult{}, fmt.Errorf("operation must be a string")
 	}
 
 	path, ok := args["path"].(string)
 	if !ok {
-		return "", fmt.Errorf("path must be a string")
+		return core.ToolExecutionResult{}, fmt.Errorf("path must be a string")
 	}
 
 	// Ensure the path is safe
 	cleanPath := filepath.Clean(path)
 	if !isPathSafe(cleanPath) {
-		return "", fmt.Errorf("path is not safe: %s", path)
+		return core.ToolExecutionResult{}, fmt.Errorf("path is not safe: %s", path)
 	}
+
+	var output string
+	var err error
 
 	switch operation {
 	case "list":
-		return t.listFiles(cleanPath)
+		output, err = t.listFiles(cleanPath)
 	case "read":
-		return t.readFile(cleanPath)
+		output, err = t.readFile(cleanPath)
 	default:
-		return "", fmt.Errorf("unknown operation: %s", operation)
+		return core.ToolExecutionResult{}, fmt.Errorf("unknown operation: %s", operation)
 	}
+
+	if err != nil {
+		return core.ToolExecutionResult{}, err
+	}
+
+	return core.ToolExecutionResult{
+		ToolMethod: operation,
+		Output:     output,
+	}, nil
 }
 
 // listFiles lists the files in a directory

@@ -22,7 +22,13 @@ type Tool interface {
 	Parameters() map[string]Parameter
 
 	// Execute runs the tool with the provided parameters
-	Execute(ctx context.Context, params map[string]interface{}) (string, error)
+	Execute(ctx context.Context, params map[string]interface{}) (ToolExecutionResult, error)
+}
+
+// ToolExecutionResult is the result of a tool execution
+type ToolExecutionResult struct {
+	ToolMethod string `json:"tool_method,omitempty"`
+	Output     string `json:"output"`
 }
 
 // Factory is a function type that creates new tools
