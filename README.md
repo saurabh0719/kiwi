@@ -1,3 +1,6 @@
+:heavy_exclamation_mark: This repo is a WIP.
+
+
 # Kiwi
 
 A command-line interface for interacting with Large Language Models (LLMs) in terminal environments.
