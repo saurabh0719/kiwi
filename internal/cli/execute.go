@@ -71,7 +71,6 @@ Remember that users in execute mode typically want quick, actionable information
 	response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
 	elapsedTime := time.Since(startTime)
 
-	// Stop the spinner
 	spinner.Stop()
 
 	if err != nil {
@@ -82,7 +81,6 @@ Remember that users in execute mode typically want quick, actionable information
 	fmt.Println(response)
 	util.OutputColor.Println("\n----------------------------------------------------------------")
 
-	// Print statistics in the designated color only when debug mode is enabled
 	if cfg.UI.Debug {
 		util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 			adapter.GetModel(),

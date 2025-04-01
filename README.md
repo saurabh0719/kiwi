@@ -84,13 +84,32 @@ Get quick answers without starting a full chat session:
 
 ```bash
 # Direct execution (default behavior)
-kiwi "Explain Docker in simple terms"
+$ kiwi "What is Docker?"
+----------------------------------------------------------------
 
+Docker is an open-source platform that automates the deployment, scaling, and management of applications using containerization. Containers allow you to package an application with all its dependencies into a standardized unit for software development. This ensures that the application runs consistently across different environments.
+
+Key features of Docker include:
+- **Portability**: Containers can run on any system that supports Docker, making it easy to move applications between environments.
+- **Isolation**: Each container runs in a separate environment, ensuring that applications do not interfere with each other.
+- **Efficiency**: Containers share the host OS kernel, making them lightweight and fast to start compared to virtual machines.
+- **Scalability**: Docker makes it easy to scale applications by deploying multiple containers across different nodes.
+
+Docker is widely used for developing, shipping, and running applications in a consistent and automated manner.
+
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 716 prompt + 173 completion = 889 total | Time: 2.92s
+```
+
+You can also use shorthand commands:
+
+```bash
 # Shorthand command
-kiwi e "Explain Docker in simple terms"
+$ kiwi e "What is version control?"
 
 # Full command
-kiwi execute "Explain Docker in simple terms"
+$ kiwi execute "What is version control?"
 ```
 
 ### Shell Command Assistance
@@ -99,19 +118,28 @@ Get help with shell commands:
 
 ```bash
 # Shorthand command
-kiwi s "find all pdf files modified in the last week"
+$ kiwi s "find all pdf files modified in the last week"
+----------------------------------------------------------------
 
-# Full command
-kiwi shell "find all pdf files modified in the last week"
+Suggested command:
+find ~ -name "*.pdf" -type f -mtime -7
+
+This command will:
+- Search in your home directory (~)
+- Find all files with .pdf extension
+- Only include regular files (not directories)
+- Filter for files modified in the last 7 days
+
+----------------------------------------------------------------
+
+Do you want to execute this command? (y/n): y
+
+/home/user/Documents/report.pdf
+/home/user/Downloads/manual.pdf
+/home/user/Projects/presentation.pdf
 ```
 
-The tool will suggest a command and ask for confirmation before executing it:
-
-```
-find /path/to/search -name "*.pdf" -type f -mtime -7
-
-Do you want to execute this command? (y/n): 
-```
+The tool will suggest a command and ask for confirmation before executing it.
 
 > **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
 
@@ -121,32 +149,36 @@ Start an interactive chat session that maintains context:
 
 ```bash
 # Shorthand command
-kiwi c
+$ kiwi c
 
 # Full command 
-kiwi chat
+$ kiwi chat
 ```
 
 Example interaction:
 
 ```
-Created new session: session_1712082042
+$ kiwi c
+
+Created new session: session_1743543868
 Chat session started. Type 'exit' to end the session.
 Using openai model: gpt-4o
 ----------------------------------------
 
-You: How can I use the filesystem tools in Kiwi?
+You: What is HTML?
 
-Kiwi: You can use filesystem tools in Kiwi to perform operations like reading files, 
-listing directories, and more. These tools are available within chat sessions.
+Kiwi: HTML, or Hypertext Markup Language, is the standard language used to create and design documents on the web. It structures web pages by using a system of tags and attributes to define elements such as headings, paragraphs, links, images, and other content types.
 
-For example, to list files in a directory:
-- Use `list_files: <directory_path>` to see files in a specific directory
-- Use `read_file: <file_path>` to view the contents of a file
+### Key Features of HTML:
+- **Tags and Elements**: HTML uses tags to structure content. Tags are enclosed in angle brackets, like `<tag>`. Most elements have an opening tag and a closing tag, e.g., `<p>Content</p>` for paragraphs.
+- **Attributes**: Tags can have attributes that provide additional information about elements, such as `id`, `class`, or `style`.
+- **Hyperlinks**: HTML supports hyperlinks, allowing users to navigate between web pages using the `<a>` tag.
+- **Media**: HTML can embed images, videos, and audio using specific tags like `<img>`, `<video>`, and `<audio>`.
+- **Semantic Elements**: Newer versions of HTML introduce semantic elements like `<header>`, `<footer>`, `<article>`, and `<section>`, which provide more meaningful structure to a document.
 
-You: read_file: ~/.bashrc
+HTML is a cornerstone technology of the World Wide Web, working alongside CSS (Cascading Style Sheets) and JavaScript to create interactive and visually appealing web pages.
 
-Kiwi: [Shows content of your bashrc file]
+[gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s
 ```
 
 ### Debug Mode
@@ -155,24 +187,27 @@ Enable debug mode to see token usage and response time:
 
 ```bash
 # Using command-line flag
-kiwi e "What is a smartphone" --debug
+$ kiwi e "What is a smartphone" --debug
 
 # Or set it permanently in your config
-kiwi config set ui.debug true
+$ kiwi config set ui.debug true
 ```
 
 Output with debug mode:
 
 ```
-A smartphone is a mobile device that combines cellular and mobile computing functions into one unit.
-Key features include:
+$ kiwi "Explain Docker in simple terms" --debug
+----------------------------------------------------------------
 
-- Touchscreen interface
-- Mobile operating system (Android or iOS)
-- Connectivity options (cellular, Wi-Fi, Bluetooth)
-- App ecosystem
-- Camera functionality
-- Various sensors
+Docker is like a shipping container for software. It packages your application and all its dependencies into a standardized unit (a container) that can run anywhere Docker is installed.
+
+Key benefits:
+- Consistency: Works the same in development and production
+- Isolation: Applications run in their own environment
+- Portability: Run on any system with Docker installed
+- Efficiency: Uses fewer resources than virtual machines
+
+----------------------------------------------------------------
 
 [gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
 ```

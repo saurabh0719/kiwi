@@ -1,0 +1,6 @@
+theme: jekyll-theme-minimal
+title: Kiwi - LLM CLI for your Terminal
+description: A command-line interface for interacting with Large Language Models directly from your terminal.
+show_downloads: true
+github:
+  repository_url: https://github.com/saurabh0719/kiwi 
