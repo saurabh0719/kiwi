@@ -8,7 +8,7 @@ var (
 	UserColor = color.New(color.FgYellow, color.Bold)
 
 	// AssistantColor for assistant responses in chat mode
-	AssistantColor = color.New(color.FgBlue, color.Bold)
+	AssistantColor = color.RGB(52, 235, 155).Add(color.Bold)
 
 	// StatsColor for statistics and metrics
 	StatsColor = color.New(color.FgCyan)

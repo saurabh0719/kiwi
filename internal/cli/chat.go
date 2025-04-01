@@ -117,10 +117,6 @@ Remember this is an ongoing conversation where context builds over time.`,
 			})
 		}
 
-		// Print a blank line and then the assistant label in blue
-		fmt.Println()
-		util.AssistantColor.Print("Assistant: ")
-
 		// Start the loading spinner
 		spinner := util.NewSpinner("Thinking...")
 		spinner.Start()
@@ -134,6 +130,9 @@ Remember this is an ongoing conversation where context builds over time.`,
 			return fmt.Errorf("failed to get response: %w", err)
 		}
 
+		// Print a blank line and then the assistant label in blue
+		fmt.Println()
+		util.AssistantColor.Print("Kiwi: ")
 		// Print the response with proper formatting
 		fmt.Println(response)
 
