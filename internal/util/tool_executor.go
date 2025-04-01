@@ -22,14 +22,14 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 	spinner.Start()
 
 	startTime := time.Now()
-	result, err := tool.Execute(ctx, args)
+	toolExecutionResult, err := tool.Execute(ctx, args)
 	elapsedTime := time.Since(startTime)
 
 	// Stop spinner
 	spinner.Stop()
 
 	// Show that the tool ran, regardless of success/failure
-	toolColor.Printf("🔧 [Tool: %s] executed in %.2fs\n\n", toolName, elapsedTime.Seconds())
+	toolColor.Printf("🔧 [Tool: %s:%s] executed in %.3fs\n", toolName, toolExecutionResult.ToolMethod, elapsedTime.Seconds())
 
-	return result, err
+	return toolExecutionResult.Output, err
 }
