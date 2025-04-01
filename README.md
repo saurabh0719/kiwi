@@ -7,11 +7,35 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 [![GitHub license](https://img.shields.io/github/license/saurabh0719/kiwi)](https://github.com/saurabh0719/kiwi/blob/main/LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://github.com/saurabh0719/kiwi)
 
+## Installation
+
+### Quick Install (Linux and macOS)
+
 ```bash
-# Quick installation
+# Install with a single command
+curl -fsSL https://raw.githubusercontent.com/saurabh0719/kiwi/main/install.sh | bash
+```
+
+### Download Prebuilt Binaries
+
+You can download prebuilt binaries for your platform from the [GitHub Releases page](https://github.com/saurabh0719/kiwi/releases).
+
+### Build from Source
+
+```bash
+# Clone the repository
 git clone https://github.com/saurabh0719/kiwi.git
 cd kiwi
+
+# Basic build
 go build -o kiwi ./cmd/kiwi
+
+# Optimized build (smaller binary size)
+go build -ldflags="-s -w" -o kiwi ./cmd/kiwi
+
+# Using make
+make build
+
 # Move to a directory in PATH
 sudo mv kiwi /usr/local/bin/
 ```
@@ -41,53 +65,6 @@ sudo mv kiwi /usr/local/bin/
 * [Project Structure](#project-structure)
 * [Contributing](#contributing)
 * [License](#license)
-
-## Installation
-
-### Prerequisites
-
-- Go 1.18 or later
-- Git
-
-### Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/saurabh0719/kiwi.git
-cd kiwi
-
-# Basic build
-go build -o kiwi ./cmd/kiwi
-
-# Optimized build (smaller binary size)
-go build -ldflags="-s -w" -o kiwi ./cmd/kiwi
-
-# Using make
-make build
-```
-
-### Adding to System Path
-
-#### Linux/macOS
-
-```bash
-# Move to a directory already in PATH
-sudo mv kiwi /usr/local/bin/
-
-# Add to PATH (add to your shell config)
-echo 'export PATH=$PATH:/path/to/kiwi/directory' >> ~/.bashrc  # or ~/.zshrc
-source ~/.bashrc  # or ~/.zshrc
-```
-
-#### Windows
-
-```powershell
-# Move to a directory in PATH (PowerShell with admin rights)
-Move-Item -Path .\kiwi.exe -Destination "C:\Windows\System32\"
-
-# Add to PATH (requires admin privileges)
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\path\to\kiwi", "User")
-```
 
 ## Usage
 
