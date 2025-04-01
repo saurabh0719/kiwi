@@ -99,11 +99,10 @@ Move-Item -Path .\kiwi.exe -Destination "C:\Windows\System32\"
 Set your API keys using environment variables:
 
 ```bash
-# For OpenAI
-export OPENAI_API_KEY=your_api_key
-
-# For Claude
-export ANTHROPIC_API_KEY=your_api_key
+kiwi config
+kiwi config set llm.provider <provider>
+kiwi config set llm.model <model>
+kiwi config set llm.api_key <your-api-key>
 ```
 
 ### Execute Prompts
