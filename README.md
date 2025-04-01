@@ -137,6 +137,11 @@ find /path/to/search -name "*.pdf" -type f -mtime -7
 Do you want to execute this command? (y/n): 
 ```
 
+> **Note about Shell Command Limitations**: The shell command tool currently has limitations with certain operations:
+> - Pipeline commands (using `|`) are not fully supported in shell mode
+> - Only a limited set of base commands are allowed for security reasons
+> - For complex commands with pipelines, use the execute mode (`kiwi e`) which can leverage filesystem and shell tools for better handling
+
 ### Interactive Chat
 
 Start an interactive chat session:
@@ -168,6 +173,7 @@ For example, to list files in a directory:
 You: read_file: ~/.bashrc
 
 Kiwi: [Shows content of your bashrc file]
+```
 
 ### Debug Mode
 
@@ -195,6 +201,35 @@ A smartphone is a mobile device that combines cellular and mobile computing func
 
 [gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
 ```
+
+#### Tool Execution Debugging
+
+In debug mode, Kiwi shows which tools are being executed with collapsible output sections:
+
+```
+🔧 [Tool: filesystem:readFile] executed in 0.123s [ID: section-1 - use 'expand section-1' to toggle]
+```
+
+Each tool execution reports:
+- The tool category being used (filesystem, shell, or sysinfo)
+- The specific method that was called
+- The execution time
+- A section ID that can be used to expand/collapse the output
+
+You can interact with the collapsible sections using the following commands in chat mode:
+- `expand section-1` - Expands the output of section-1
+- `collapse section-1` - Collapses the output of section-1
+- `sections` - Lists all available sections
+
+When expanded, you'll see the full output of the tool:
+
+```
+🔧 [Tool: filesystem:readFile] executed in 0.123s [ID: section-1 - use 'expand section-1' to toggle]
+  # Contents of README.md
+  A command-line interface for interacting with Large Language Models (LLMs)...
+```
+
+This feature helps keep the terminal clean while still allowing you to inspect tool outputs when needed.
 
 ## Configuration
 
@@ -240,6 +275,139 @@ ui:
   debug: false
 ```
 
+## Extending Kiwi: Custom Tools
+
+Kiwi can be extended with custom tools by implementing the core Tool interface.
+
+### Creating a Custom Tool
+
+1. **Create a new package**
+```
+mkdir -p internal/tools/mytool
+```
+
+2. **Implement the Tool interface**
+```go
+// mytool.go
+package mytool
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/saurabh0719/kiwi/internal/tools/core"
+)
+
+// Tool implements the core.Tool interface
+type Tool struct {
+	name        string
+	description string
+	parameters  map[string]core.Parameter
+}
+
+// New creates a new tool instance
+func New() *Tool {
+	return &Tool{
+		name:        "mytool",
+		description: "Description of what this tool does",
+		parameters: map[string]core.Parameter{
+			"param1": {
+				Type:        "string",
+				Description: "Parameter description",
+				Required:    true,
+			},
+		},
+	}
+}
+
+// Name returns the tool name
+func (t *Tool) Name() string { return t.name }
+
+// Description returns the tool description
+func (t *Tool) Description() string { return t.description }
+
+// Parameters returns the tool parameters
+func (t *Tool) Parameters() map[string]core.Parameter { return t.parameters }
+
+// Execute performs the tool's operation
+func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
+	// Extract and validate parameters
+	param1, ok := args["param1"].(string)
+	if !ok {
+		return core.ToolExecutionResult{}, fmt.Errorf("param1 must be a string")
+	}
+	
+	// Implement tool logic
+	output := fmt.Sprintf("Processed: %s", param1)
+	
+	return core.ToolExecutionResult{
+		ToolMethod: "process", // Name of specific operation performed
+		Output:     output,
+	}, nil
+}
+```
+
+3. **Register your tool in tools.go**
+```go
+// Add import
+import "github.com/saurabh0719/kiwi/internal/tools/mytool"
+
+// Add factory function
+func NewMyTool() core.Tool {
+	return mytool.New()
+}
+
+// Update registration function
+func RegisterStandardTools(registry *Registry) {
+	registry.Register(NewFileSystemTool())
+	registry.Register(NewShellTool())
+	registry.Register(NewSystemInfoTool())
+	registry.Register(NewMyTool()) // Register your tool
+}
+```
+
+### Best Practices
+
+- **Validate parameters** thoroughly
+- Use **descriptive method names** in ToolMethod field
+- Return **clear error messages** for better debugging
+- Consider **security implications** for filesystem/shell operations
+- Write **unit tests** for your tools
+
+### API-Based Tool Example
+
+For tools that call external APIs (simplified):
+
+```go
+// Execute for an API-based tool
+func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
+	// Extract parameters
+	query, ok := args["query"].(string)
+	if !ok {
+		return core.ToolExecutionResult{}, fmt.Errorf("query must be a string")
+	}
+	
+	// Call external API
+	resp, err := http.Get(fmt.Sprintf("https://api.example.com/data?q=%s&key=%s", 
+		url.QueryEscape(query), t.apiKey))
+	if err != nil {
+		return core.ToolExecutionResult{}, err
+	}
+	defer resp.Body.Close()
+	
+	// Process response
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return core.ToolExecutionResult{}, err
+	}
+	
+	return core.ToolExecutionResult{
+		ToolMethod: "search",
+		Output:     fmt.Sprintf("Results: %v", data["results"]),
+	}, nil
+}
+```
+
 ## Built-in Tools
 
 Kiwi provides several built-in tools that can be accessed during chat sessions:
@@ -264,6 +432,11 @@ Execute and get help with shell commands:
 - command_help: Get help with a specific command
 ```
 
+Allowed commands:
+```
+ls, cat, grep, find, pwd, head, tail, wc, echo, date, ps, df, du, free, top
+```
+
 ### System Info Tools
 
 Retrieve system information:
@@ -274,9 +447,7 @@ Retrieve system information:
 - memory_info: Get memory usage statistics
 ```
 
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 kiwi/
@@ -304,7 +475,7 @@ kiwi/
 └── README.md         # This documentation
 ```
 
-### Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -314,4 +485,4 @@ kiwi/
 
 ## License
 
-This project is licensed under the Apache-2.0 License - see the LICENSE file for details. 
+This project is licensed under the Apache-2.0 License - see the LICENSE file for details.
