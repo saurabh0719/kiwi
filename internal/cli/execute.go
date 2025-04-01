@@ -5,17 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/saurabh0719/kiwi/internal/config"
 	"github.com/saurabh0719/kiwi/internal/llm"
 	"github.com/saurabh0719/kiwi/internal/tools"
 	"github.com/saurabh0719/kiwi/internal/util"
 	"github.com/spf13/cobra"
-)
-
-// Color definitions for stats output
-var (
-	statsColor = color.New(color.FgBlue)
 )
 
 func initExecuteCmd() {
@@ -84,11 +78,13 @@ Remember that users in execute mode typically want quick, actionable information
 		return fmt.Errorf("failed to get response: %w", err)
 	}
 
+	util.OutputColor.Println("----------------------------------------------------------------\n")
 	fmt.Println(response)
+	util.OutputColor.Println("\n----------------------------------------------------------------")
 
-	// Print statistics in blue only when debug mode is enabled
+	// Print statistics in the designated color only when debug mode is enabled
 	if cfg.UI.Debug {
-		statsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+		util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 			adapter.GetModel(),
 			metrics.PromptTokens,
 			metrics.CompletionTokens,

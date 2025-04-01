@@ -137,7 +137,7 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 	var totalPromptTokens, totalCompletionTokens int
 
 	// Maximum number of function call iterations to prevent infinite loops
-	maxCalls := 5
+	maxCalls := 10
 	callCount := 0
 
 	// Process the conversation with potential function calls

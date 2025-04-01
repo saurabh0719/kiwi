@@ -51,16 +51,27 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create LLM adapter: %w", err)
 	}
 
-	fmt.Printf("Created new session: %s\n", sessionID)
-	fmt.Println("Chat session started. Type 'exit' to end the session.")
-	fmt.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
-	fmt.Println("----------------------------------------")
+	// Print session information with improved formatting
+	util.InfoColor.Printf("Created new session: %s\n", sessionID)
+	fmt.Println("Chat session started. Type 'exit' to end the session. Use Shift+Enter for new lines, Enter to submit")
+	util.InfoColor.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
+	util.DividerColor.Println("----------------------------------------")
 
 	for {
-		fmt.Print("\nYou: ")
+		// Print the user prompt in yellow with a newline before it for better separation
+		fmt.Println()
+		util.UserColor.Print("You: ")
+
+		// Read user input with support for both single-line and multi-line input
 		userInput, err := input.ReadMultiLine("")
 		if err != nil {
 			return fmt.Errorf("failed to read input: %w", err)
+		}
+
+		// Skip empty inputs and request a non-empty message
+		if strings.TrimSpace(userInput) == "" {
+			// Silently continue the loop to re-prompt the user instead of showing an error
+			continue
 		}
 
 		if strings.ToLower(strings.TrimSpace(userInput)) == "exit" {
@@ -106,7 +117,9 @@ Remember this is an ongoing conversation where context builds over time.`,
 			})
 		}
 
-		fmt.Print("\nAssistant: ")
+		// Print a blank line and then the assistant label in blue
+		fmt.Println()
+		util.AssistantColor.Print("Assistant: ")
 
 		// Start the loading spinner
 		spinner := util.NewSpinner("Thinking...")
@@ -121,16 +134,19 @@ Remember this is an ongoing conversation where context builds over time.`,
 			return fmt.Errorf("failed to get response: %w", err)
 		}
 
+		// Print the response with proper formatting
 		fmt.Println(response)
 
-		// Print statistics in blue only when debug mode is enabled
+		// Add a subtle divider after the response for better visual separation
 		if cfg.UI.Debug {
-			statsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+			// Print statistics in cyan only when debug mode is enabled
+			util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 				adapter.GetModel(),
 				metrics.PromptTokens,
 				metrics.CompletionTokens,
 				metrics.TotalTokens,
 				metrics.ResponseTime.Seconds())
+			util.DividerColor.Println("----------------------------------------")
 		}
 
 		if err := sessionMgr.AddMessage(sess.ID, "assistant", response); err != nil {

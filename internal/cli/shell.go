@@ -5,17 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/saurabh0719/kiwi/internal/config"
 	"github.com/saurabh0719/kiwi/internal/llm"
 	"github.com/saurabh0719/kiwi/internal/tools"
 	"github.com/saurabh0719/kiwi/internal/util"
 	"github.com/spf13/cobra"
 )
-
-var commandColor = color.New(color.FgGreen)
-
-// statsColor is declared in execute.go
 
 func initShellCmd() {
 	shellCmd = &cobra.Command{
@@ -92,12 +87,12 @@ This is a pure command generation mode - the interface will handle execution and
 	}
 
 	// Display the command in green, without a box
-	commandColor.Println(response)
+	util.OutputColor.Println(response)
 	fmt.Println() // Add space after command
 
-	// Print statistics in blue only when debug mode is enabled
+	// Print statistics only when debug mode is enabled
 	if cfg.UI.Debug {
-		statsColor.Printf("[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+		util.StatsColor.Printf("[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 			adapter.GetModel(),
 			metrics.PromptTokens,
 			metrics.CompletionTokens,
@@ -120,7 +115,7 @@ This is a pure command generation mode - the interface will handle execution and
 
 	// Add a line break before output header
 	fmt.Println()
-	commandColor.Println("Output:")
+	util.SuccessColor.Println("Output:")
 
 	shellTool := tools.NewShellTool()
 	result, err := shellTool.Execute(context.Background(), map[string]interface{}{
