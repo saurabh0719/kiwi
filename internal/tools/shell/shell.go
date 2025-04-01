@@ -44,39 +44,32 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 			Description: "Command to execute",
 			Required:    true,
 		},
-		"args": {
-			Type:        "array",
-			Description: "Command arguments",
-			Required:    false,
-			Default:     []string{},
-		},
 	}
 }
 
 // Execute executes the tool with the given arguments
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
-	command, ok := args["command"].(string)
+	commandLine, ok := args["command"].(string)
 	if !ok {
 		return "", fmt.Errorf("command must be a string")
 	}
 
-	// Check if command is allowed
-	if !t.isCommandAllowed(command) {
-		return "", fmt.Errorf("command not allowed: %s", command)
+	// Split the command line into command and arguments
+	parts := strings.Fields(commandLine)
+	if len(parts) == 0 {
+		return "", fmt.Errorf("empty command")
 	}
 
-	// Get command arguments
-	var cmdArgs []string
-	if argsRaw, ok := args["args"].([]interface{}); ok {
-		for _, arg := range argsRaw {
-			if strArg, ok := arg.(string); ok {
-				cmdArgs = append(cmdArgs, strArg)
-			}
-		}
+	baseCommand := parts[0]
+	cmdArgs := parts[1:]
+
+	// Check if base command is allowed
+	if !t.isCommandAllowed(baseCommand) {
+		return "", fmt.Errorf("command not allowed: %s", baseCommand)
 	}
 
 	// Create command
-	cmd := exec.CommandContext(ctx, command, cmdArgs...)
+	cmd := exec.CommandContext(ctx, baseCommand, cmdArgs...)
 
 	// Run command and capture output
 	output, err := cmd.CombinedOutput()

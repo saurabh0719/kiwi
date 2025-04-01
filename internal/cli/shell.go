@@ -1,11 +1,8 @@
 package cli
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -94,32 +91,36 @@ This is a pure command generation mode - the interface will handle execution and
 		return fmt.Errorf("failed to get response: %w", err)
 	}
 
-	fmt.Println()
+	// Display the command in green, without a box
 	commandColor.Println(response)
+	fmt.Println() // Add space after command
 
 	// Print statistics in blue only when debug mode is enabled
 	if cfg.UI.Debug {
-		statsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+		statsColor.Printf("[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 			adapter.GetModel(),
 			metrics.PromptTokens,
 			metrics.CompletionTokens,
 			metrics.TotalTokens,
 			elapsedTime.Seconds())
+		fmt.Println() // Add space after debug info
 	}
 
 	if cfg.LLM.SafeMode {
-		fmt.Print("\nDo you want to execute this command? (y/n): ")
-		reader := bufio.NewReader(os.Stdin)
-		answer, err := reader.ReadString('\n')
+		// Use single-key confirmation
+		confirmed, err := util.PromptForConfirmation("Do you want to execute this command? (y/N): ")
 		if err != nil {
 			return fmt.Errorf("failed to read input: %w", err)
 		}
 
-		answer = strings.TrimSpace(strings.ToLower(answer))
-		if answer != "y" {
+		if !confirmed {
 			return nil
 		}
 	}
+
+	// Add a line break before output header
+	fmt.Println()
+	commandColor.Println("Output:")
 
 	shellTool := tools.NewShellTool()
 	result, err := shellTool.Execute(context.Background(), map[string]interface{}{
