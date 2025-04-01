@@ -26,12 +26,14 @@ Examples:
 
   # Get a specific config value
   kiwi config get llm.provider
+  kiwi config get ui.debug
 
   # Set a config value
   kiwi config set llm.provider openai
   kiwi config set llm.model gpt-4
   kiwi config set llm.api_key your_api_key
-  kiwi config set llm.safe_mode true`,
+  kiwi config set llm.safe_mode true
+  kiwi config set ui.debug true`,
 	}
 
 	// List command
@@ -95,6 +97,9 @@ func handleConfigList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Show UI settings
+	fmt.Printf("  ui.debug: %t\n", cfg.UI.Debug)
+
 	return nil
 }
 
@@ -119,6 +124,8 @@ func handleConfigGet(cmd *cobra.Command, args []string) error {
 		}
 	case "llm.safe_mode":
 		fmt.Println(cfg.LLM.SafeMode)
+	case "ui.debug":
+		fmt.Println(cfg.UI.Debug)
 	default:
 		// Check if it's an option
 		if strings.HasPrefix(key, "llm.options.") {
@@ -162,6 +169,14 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 			cfg.LLM.SafeMode = false
 		} else {
 			return fmt.Errorf("safe_mode must be 'true' or 'false'")
+		}
+	case "ui.debug":
+		if value == "true" {
+			cfg.UI.Debug = true
+		} else if value == "false" {
+			cfg.UI.Debug = false
+		} else {
+			return fmt.Errorf("debug must be 'true' or 'false'")
 		}
 	default:
 		// Check if it's an option

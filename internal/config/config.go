@@ -19,9 +19,15 @@ type LLMConfig struct {
 	SafeMode bool              `mapstructure:"safe_mode"`
 }
 
+// UIConfig represents UI and display settings
+type UIConfig struct {
+	Debug bool `mapstructure:"debug"`
+}
+
 // Config represents the overall application configuration
 type Config struct {
 	LLM LLMConfig `mapstructure:"llm"`
+	UI  UIConfig  `mapstructure:"ui"`
 }
 
 func getConfigDir() (string, error) {
@@ -53,6 +59,9 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	v.SetDefault("llm.options", map[string]string{})
 	v.SetDefault("llm.safe_mode", true)
 
+	// Set UI defaults
+	v.SetDefault("ui.debug", false)
+
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
@@ -83,6 +92,9 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	if err := v.BindPFlag("llm.safe_mode", rootCmd.Flags().Lookup("safe-mode")); err != nil {
 		return nil, fmt.Errorf("failed to bind safe-mode flag: %w", err)
 	}
+	if err := v.BindPFlag("ui.debug", rootCmd.Flags().Lookup("debug")); err != nil {
+		return nil, fmt.Errorf("failed to bind debug flag: %w", err)
+	}
 
 	var config Config
 	if err := v.Unmarshal(&config); err != nil {
@@ -111,6 +123,9 @@ func (c *Config) Save() error {
 	v.Set("llm.api_key", c.LLM.APIKey)
 	v.Set("llm.options", c.LLM.Options)
 	v.Set("llm.safe_mode", c.LLM.SafeMode)
+
+	// Set UI values
+	v.Set("ui.debug", c.UI.Debug)
 
 	// Write to file
 	configPath := filepath.Join(configDir, "config.yaml")

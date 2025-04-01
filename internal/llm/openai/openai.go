@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	openaiapi "github.com/sashabaranov/go-openai"
 	"github.com/saurabh0719/kiwi/internal/llm/core"
@@ -36,6 +37,12 @@ func New(model, apiKey string, tools *tools.Registry) (*Adapter, error) {
 
 // Chat sends a message to OpenAI and returns the response
 func (a *Adapter) Chat(ctx context.Context, messages []core.Message) (string, error) {
+	response, _, err := a.ChatWithMetrics(ctx, messages)
+	return response, err
+}
+
+// ChatWithMetrics sends a message to OpenAI and returns the response with metrics
+func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) (string, *core.ResponseMetrics, error) {
 	// Build system prompt with tools
 	systemPrompt := core.DefaultSystemPrompt
 	if a.tools != nil {
@@ -56,6 +63,7 @@ func (a *Adapter) Chat(ctx context.Context, messages []core.Message) (string, er
 		})
 	}
 
+	startTime := time.Now()
 	resp, err := a.client.CreateChatCompletion(
 		ctx,
 		openaiapi.ChatCompletionRequest{
@@ -64,15 +72,24 @@ func (a *Adapter) Chat(ctx context.Context, messages []core.Message) (string, er
 			Temperature: 0.7,
 		},
 	)
+	responseTime := time.Since(startTime)
+
 	if err != nil {
-		return "", fmt.Errorf("failed to create chat completion: %w", err)
+		return "", nil, fmt.Errorf("failed to create chat completion: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
-		return "", fmt.Errorf("no completion choices returned")
+		return "", nil, fmt.Errorf("no completion choices returned")
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	metrics := &core.ResponseMetrics{
+		PromptTokens:     resp.Usage.PromptTokens,
+		CompletionTokens: resp.Usage.CompletionTokens,
+		TotalTokens:      resp.Usage.TotalTokens,
+		ResponseTime:     responseTime,
+	}
+
+	return resp.Choices[0].Message.Content, metrics, nil
 }
 
 // GetModel returns the model name being used

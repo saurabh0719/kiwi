@@ -11,15 +11,15 @@ import (
 	"github.com/saurabh0719/kiwi/internal/llm"
 	"github.com/saurabh0719/kiwi/internal/session"
 	"github.com/saurabh0719/kiwi/internal/tools"
+	"github.com/saurabh0719/kiwi/internal/util"
 	"github.com/spf13/cobra"
 )
 
 func initChatCmd() {
 	chatCmd = &cobra.Command{
-		Use:     "chat",
-		Aliases: []string{"c"},
-		Short:   "Start a new chat session",
-		Long:    `Start a new chat session with the LLM. Type 'exit' to end the session.`,
+		Use:   "chat",
+		Short: "Start a new chat session",
+		Long:  `Start a new chat session with the LLM. Type 'exit' to end the session.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return startNewChat(cmd, args)
 		},
@@ -107,12 +107,31 @@ Remember this is an ongoing conversation where context builds over time.`,
 		}
 
 		fmt.Print("\nAssistant: ")
-		response, err := adapter.Chat(context.Background(), messages)
+
+		// Start the loading spinner
+		spinner := util.NewSpinner("Thinking...")
+		spinner.Start()
+
+		response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
+
+		// Stop the spinner
+		spinner.Stop()
+
 		if err != nil {
 			return fmt.Errorf("failed to get response: %w", err)
 		}
 
 		fmt.Println(response)
+
+		// Print statistics in blue only when debug mode is enabled
+		if cfg.UI.Debug {
+			statsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+				adapter.GetModel(),
+				metrics.PromptTokens,
+				metrics.CompletionTokens,
+				metrics.TotalTokens,
+				metrics.ResponseTime.Seconds())
+		}
 
 		if err := sessionMgr.AddMessage(sess.ID, "assistant", response); err != nil {
 			return fmt.Errorf("failed to add assistant message: %w", err)

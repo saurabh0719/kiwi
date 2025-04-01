@@ -3,20 +3,27 @@ package cli
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/saurabh0719/kiwi/internal/config"
 	"github.com/saurabh0719/kiwi/internal/llm"
 	"github.com/saurabh0719/kiwi/internal/tools"
+	"github.com/saurabh0719/kiwi/internal/util"
 	"github.com/spf13/cobra"
+)
+
+// Color definitions for stats output
+var (
+	statsColor = color.New(color.FgBlue)
 )
 
 func initExecuteCmd() {
 	executeCmd = &cobra.Command{
-		Use:     "execute",
-		Aliases: []string{"e"},
-		Short:   "Execute a prompt",
-		Long:    `Execute a prompt and get a response from the LLM.`,
-		Args:    cobra.ExactArgs(1),
+		Use:   "execute",
+		Short: "Execute a prompt",
+		Long:  `Execute a prompt and get a response from the LLM.`,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return handleExecute(cmd, args[0])
 		},
@@ -62,11 +69,32 @@ Remember that users in execute mode typically want quick, actionable information
 		},
 	}
 
-	response, err := adapter.Chat(context.Background(), messages)
+	// Start the loading spinner
+	spinner := util.NewSpinner("Generating response...")
+	spinner.Start()
+
+	startTime := time.Now()
+	response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
+	elapsedTime := time.Since(startTime)
+
+	// Stop the spinner
+	spinner.Stop()
+
 	if err != nil {
 		return fmt.Errorf("failed to get response: %w", err)
 	}
 
 	fmt.Println(response)
+
+	// Print statistics in blue only when debug mode is enabled
+	if cfg.UI.Debug {
+		statsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
+			adapter.GetModel(),
+			metrics.PromptTokens,
+			metrics.CompletionTokens,
+			metrics.TotalTokens,
+			elapsedTime.Seconds())
+	}
+
 	return nil
 }
