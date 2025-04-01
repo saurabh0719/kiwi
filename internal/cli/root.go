@@ -25,12 +25,17 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "kiwi",
-	Short: "Kiwi - A CLI tool for interacting with LLMs",
+	Use:   "kiwi [prompt]",
+	Short: "Kiwi - A CLI tool for interacting with LLMs directly from your terminal",
 	Long: `Kiwi is a CLI tool that helps you interact with Large Language Models (LLMs).
 It supports multiple LLM providers and provides various tools for enhanced functionality.
 
+When run without a command but with arguments, Kiwi treats the arguments as a prompt for the execute command.
+
 Examples:
+  # Execute a prompt (default behavior)
+  kiwi "What is the capital of France?"
+
   # Start a new chat session
   kiwi chat
   kiwi -c
@@ -39,7 +44,7 @@ Examples:
   kiwi shell "list all files in this directory"
   kiwi -s "list all files in this directory"
 
-  # Execute a prompt
+  # Execute a prompt (explicit)
   kiwi execute "What is the capital of France?"
   kiwi -e "What is the capital of France?"
 
@@ -54,6 +59,8 @@ Configuration:
   - Command line flags (--provider, --model, --api-key)
   - Config file (~/.kiwi/config.yaml)
   - Config commands (kiwi config set)`,
+	// Allow arbitrary args to support default execute mode
+	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// If no command is provided but shorthand flags are, handle them
 		switch {
@@ -64,7 +71,16 @@ Configuration:
 		case shellFlag != "":
 			return handleShellHelp(cmd, shellFlag)
 		default:
-			// Display help if no command or flag is provided
+			// If arguments are provided, treat them as an execute command
+			if len(args) > 0 {
+				// Join all arguments into a single prompt string
+				prompt := args[0]
+				for i := 1; i < len(args); i++ {
+					prompt += " " + args[i]
+				}
+				return handleExecute(cmd, prompt)
+			}
+			// Display help if no command, flag, or args are provided
 			return cmd.Help()
 		}
 	},

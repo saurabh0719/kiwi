@@ -51,18 +51,16 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create LLM adapter: %w", err)
 	}
 
-	// Print session information with improved formatting
+	// session info
 	util.InfoColor.Printf("Created new session: %s\n", sessionID)
 	fmt.Println("Chat session started. Type 'exit' to end the session. Use Shift+Enter for new lines, Enter to submit")
 	util.InfoColor.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
 	util.DividerColor.Println("----------------------------------------")
 
 	for {
-		// Print the user prompt in yellow with a newline before it for better separation
 		fmt.Println()
 		util.UserColor.Print("You: ")
 
-		// Read user input with support for both single-line and multi-line input
 		userInput, err := input.ReadMultiLine("")
 		if err != nil {
 			return fmt.Errorf("failed to read input: %w", err)
@@ -117,28 +115,21 @@ Remember this is an ongoing conversation where context builds over time.`,
 			})
 		}
 
-		// Start the loading spinner
 		spinner := util.NewSpinner("Thinking...")
 		spinner.Start()
-
 		response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
-
-		// Stop the spinner
 		spinner.Stop()
 
 		if err != nil {
 			return fmt.Errorf("failed to get response: %w", err)
 		}
 
-		// Print a blank line and then the assistant label in blue
+		// assistant response
 		fmt.Println()
 		util.AssistantColor.Print("Kiwi: ")
-		// Print the response with proper formatting
 		fmt.Println(response)
 
-		// Add a subtle divider after the response for better visual separation
 		if cfg.UI.Debug {
-			// Print statistics in cyan only when debug mode is enabled
 			util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
 				adapter.GetModel(),
 				metrics.PromptTokens,

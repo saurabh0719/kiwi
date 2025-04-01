@@ -100,7 +100,6 @@ func handleConfigList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Show UI settings
 	fmt.Printf("  ui.debug: %t\n", cfg.UI.Debug)
 
 	return nil

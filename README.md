@@ -24,6 +24,7 @@ sudo mv kiwi /usr/local/bin/
 - **Execute Mode**: Run one-off prompts for quick answers
 - **Debug Mode**: View token usage and response time statistics
 - **Built-in Tools**: Filesystem operations, shell commands, system information
+- **Default Execute Mode**: Run prompts directly without specifying a command
 
 ## Table of Contents
 
@@ -105,6 +106,9 @@ kiwi config set llm.api_key your-api-key-here
 Get quick answers without starting a full chat session:
 
 ```bash
+# Direct execution (default behavior)
+kiwi "Explain Docker in simple terms"
+
 # Shorthand command
 kiwi e "Explain Docker in simple terms"
 
