@@ -98,22 +98,94 @@ kiwi --help
 
 ## Usage
 
-### Interactive Chat
+### Execute Prompts
 
 ```bash
-kiwi chat
+# Shorthand command
+kiwi e "Explain Docker in simple terms"
+
+# Full command
+kiwi execute "Explain Docker in simple terms"
+```
+
+**Example Output:**
+```
+Docker is a platform that packages software into standardized units called containers. Think of containers like shipping containers in the real world:
+
+1. Standardized: Just as shipping containers have standard sizes and fittings, Docker containers package everything an application needs (code, libraries, settings) in a consistent way.
+
+2. Portable: Containers run the same way regardless of environment - your laptop, a server, or the cloud.
+
+3. Isolated: Each container operates independently without interfering with other containers or the host system.
+
+4. Efficient: Unlike virtual machines, containers share the host OS kernel, making them lightweight and quick to start.
+
+Docker makes development and deployment simpler because it eliminates "it works on my machine" problems, as the container includes everything needed to run the application consistently across different environments.
 ```
 
 ### Shell Command Assistance
 
 ```bash
+# Shorthand command
+kiwi s "find all pdf files modified in the last week"
+
+# Full command
 kiwi shell "find all pdf files modified in the last week"
 ```
 
-### Execute Prompts
+**Example Output:**
+```
+find /path/to/search -name "*.pdf" -type f -mtime -7
+
+Do you want to execute this command? (y/n): 
+```
+
+### Interactive Chat
 
 ```bash
-kiwi execute "Explain Docker in simple terms"
+# Shorthand command
+kiwi c
+
+# Full command 
+kiwi chat
+```
+
+**Example Output:**
+```
+Created new session: session_1712082042
+Chat session started. Type 'exit' to end the session.
+Using openai model: gpt-4o
+----------------------------------------
+
+You: What can you help me with?
+```
+
+### Debug Mode
+
+You can enable debug mode to see detailed information about token usage and response time:
+
+```bash
+# Using command-line flag
+kiwi e "What is a smartphone" --debug
+
+# Or set it permanently in your config
+kiwi config set ui.debug true
+```
+
+**Example Output with Debug Mode:**
+```
+A smartphone is a mobile device that combines cellular and mobile computing functions into one unit. Key features of a smartphone include:
+
+- **Touchscreen Interface**: Typically large, high-resolution displays for interaction.
+- **Operating System**: Runs a mobile OS like Android or iOS.
+- **Connectivity**: Offers cellular connectivity for calls and text, along with Wi-Fi, Bluetooth, and often GPS.
+- **App Ecosystem**: Supports a wide range of applications for productivity, communication, and entertainment.
+- **Camera**: Integrated high-quality cameras for photos and videos.
+- **Sensors**: Includes accelerometers, gyroscopes, and often biometric sensors (e.g., fingerprint, face recognition).
+
+Smartphones are versatile devices used for communication, internet access, media consumption, and various other applications.
+
+[gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
 ```
 
 ### Manage Configuration
@@ -153,6 +225,7 @@ export ANTHROPIC_API_KEY=your_api_key
 --model string      Model to use (default "gpt-3.5-turbo")
 --api-key string    API key (if not set via environment variable)
 --safe-mode         Enable command confirmation (default true)
+--debug             Enable debug mode with verbose output and statistics (default false)
 ```
 
 ### Config File
@@ -165,6 +238,8 @@ llm:
   model: gpt-4
   api_key: your_api_key
   safe_mode: true
+ui:
+  debug: false
 ```
 
 ## License
