@@ -22,6 +22,7 @@ func initConfigCmd() {
 
 Examples:
   # List all config settings
+  kiwi config
   kiwi config list
 
   # Get a specific config value
@@ -34,6 +35,8 @@ Examples:
   kiwi config set llm.api_key your_api_key
   kiwi config set llm.safe_mode true
   kiwi config set ui.debug true`,
+		// Run list command by default when no subcommand is specified
+		RunE: handleConfigList,
 	}
 
 	// List command
