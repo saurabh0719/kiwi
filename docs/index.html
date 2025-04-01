@@ -37,7 +37,7 @@
         <div class="container">
             <div class="hero-content">
                 <h1>Interact with LLMs, generate commands, answer questions - all within the comfort of your terminal! 🕶️ 🤌</h1>
-                <p class="subtitle">A modern CLI that brings the power of LLMs to your command line</p>
+                <p class="subtitle">A modern CLI that brings the power of LLMs and built-in tools to your command line</p>
                 <div class="cta-buttons">
                     <a href="#installation" class="cta-primary">Install Now</a>
                     <a href="https://github.com/saurabh0719/kiwi" class="cta-secondary">View on GitHub</a>
@@ -78,48 +78,48 @@ Docker is widely used for developing, shipping, and running applications in a co
 
     <section id="features" class="features">
         <div class="container">
-            <h2>Key Features</h2>
+            <h2>✨ Key Features</h2>
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-terminal"></i>
                     </div>
-                    <h3>Multiple LLM Providers</h3>
+                    <h3>🚀 Multiple LLM Providers</h3>
                     <p>Support for OpenAI and Claude APIs with customizable models</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-comments"></i>
                     </div>
-                    <h3>Interactive Chat</h3>
+                    <h3>💬 Interactive Chat</h3>
                     <p>Maintain context in ongoing conversations with persistent sessions</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-cogs"></i>
                     </div>
-                    <h3>Shell Command Assistance</h3>
+                    <h3>🔧 Shell Command Assistance</h3>
                     <p>Get terminal command suggestions with confirmation before execution</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-bolt"></i>
                     </div>
-                    <h3>Execute Mode</h3>
+                    <h3>⚡ Execute Mode</h3>
                     <p>Run one-off prompts for quick answers without starting a chat session</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-bug"></i>
                     </div>
-                    <h3>Debug Mode</h3>
+                    <h3>🐞 Debug Mode</h3>
                     <p>View token usage and response time statistics for optimization</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-tools"></i>
                     </div>
-                    <h3>Built-in Tools</h3>
+                    <h3>🛠️ Built-in Tools</h3>
                     <p>Access filesystem operations, shell commands, and system information</p>
                 </div>
             </div>
@@ -128,10 +128,10 @@ Docker is widely used for developing, shipping, and running applications in a co
 
     <section id="examples" class="examples">
         <div class="container">
-            <h2>Example Usage</h2>
+            <h2>🔍 Example Usage</h2>
             <div class="examples-grid">
                 <div class="example-card">
-                    <h3>Execute Mode</h3>
+                    <h3>⚡ Execute Mode</h3>
                     <div class="code-block">
                         <pre><code>$ kiwi "Explain Docker in simple terms"
 ----------------------------------------------------------------
@@ -150,7 +150,7 @@ Key benefits:
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>Shell Command Assistance</h3>
+                    <h3>🔧 Shell Command Assistance</h3>
                     <div class="code-block">
                         <pre><code>$ kiwi s "find all pdf files modified in the last week"
 ----------------------------------------------------------------
@@ -174,7 +174,41 @@ Do you want to execute this command? (y/n): y
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>Interactive Chat</h3>
+                    <h3>🛠️ Tool Calls</h3>
+                    <div class="code-block">
+                        <pre><code>$ kiwi "summarise the contents of this directory"
+🔧 [Tool: filesystem:list] executed in 0.000s
+----------------------------------------------------------------
+
+Here's a summary of the contents of the current directory:
+
+- **Directories:**
+  - `.git/`: Version control directory for Git
+  - `.github/`: Contains GitHub-specific configurations or workflows
+  - `bin/`: Likely contains compiled binaries or scripts
+  - `cmd/`: Typically used for command-line tools or applications
+  - `docs/`: Documentation files
+  - `internal/`: Contains internal packages or modules
+
+- **Files:**
+  - `.gitignore`: Specifies files and directories to be ignored by Git
+  - `LICENSE`: License information for the project
+  - `Makefile`: Contains build instructions and commands
+  - `README.md`: Project description and usage instructions
+  - `go.mod`: Module definition file for Go projects
+  - `go.sum`: Checksums for Go module dependencies
+  - `install.sh`: Shell script for installation
+  - `kiwi`: Possibly an executable or script related to the project
+
+This structure suggests a Go-based project with version control and documentation setup.
+
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s</code></pre>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <h3>💬 Interactive Chat</h3>
                     <div class="code-block">
                         <pre><code>$ kiwi c
 
@@ -208,21 +242,21 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 
     <section id="installation" class="installation">
         <div class="container">
-            <h2>Installation</h2>
+            <h2>📦 Installation</h2>
             <div class="installation-options">
                 <div class="installation-card">
-                    <h3>Quick Install (Linux and macOS)</h3>
+                    <h3>🚀 Quick Install (Linux and macOS)</h3>
                     <div class="code-block">
                         <pre><code>curl -fsSL https://raw.githubusercontent.com/saurabh0719/kiwi/main/install.sh | bash</code></pre>
                     </div>
                 </div>
                 <div class="installation-card">
-                    <h3>Prebuilt Binaries</h3>
+                    <h3>💾 Prebuilt Binaries</h3>
                     <p>Download binaries for your platform from the GitHub Releases page:</p>
                     <a href="https://github.com/saurabh0719/kiwi/releases" class="download-link">Download Releases</a>
                 </div>
                 <div class="installation-card">
-                    <h3>Build from Source</h3>
+                    <h3>🔨 Build from Source</h3>
                     <div class="code-block">
                         <pre><code>git clone https://github.com/saurabh0719/kiwi.git
 cd kiwi

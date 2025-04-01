@@ -7,7 +7,7 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 [![GitHub license](https://img.shields.io/github/license/saurabh0719/kiwi)](https://github.com/saurabh0719/kiwi/blob/main/LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://github.com/saurabh0719/kiwi)
 
-## Installation
+## 📦 Installation
 
 ### Quick Install (Linux and macOS)
 
@@ -40,7 +40,7 @@ make build
 sudo mv kiwi /usr/local/bin/
 ```
 
-## Features
+## ✨ Features
 
 - **Multiple LLM Providers**: Support for OpenAI and Claude APIs
 - **Interactive Chat**: Maintain context in ongoing conversations
@@ -50,25 +50,26 @@ sudo mv kiwi /usr/local/bin/
 - **Built-in Tools**: Filesystem operations, shell commands, system information
 - **Default Execute Mode**: Run prompts directly without specifying a command
 
-## Table of Contents
+## 📑 Table of Contents
 
-* [Installation](#installation)
-* [Usage](#usage)
-  * [API Keys](#api-keys)
-  * [Execute Mode](#execute-mode)
-  * [Shell Command Assistance](#shell-command-assistance)
-  * [Interactive Chat](#interactive-chat)
-  * [Debug Mode](#debug-mode)
-* [Configuration](#configuration)
-* [Built-in Tools](#built-in-tools)
-* [Custom Tools](#custom-tools)
-* [Project Structure](#project-structure)
-* [Contributing](#contributing)
-* [License](#license)
+* [Installation](#-installation)
+* [Usage](#-usage)
+  * [API Keys](#-api-keys)
+  * [Execute Mode](#-execute-mode)
+  * [Shell Command Assistance](#-shell-command-assistance)
+  * [Interactive Chat](#-interactive-chat)
+  * [Debug Mode](#-debug-mode)
+  * [Tool Calls](#-tool-calls)
+* [Configuration](#-configuration)
+* [Built-in Tools](#-built-in-tools)
+* [Custom Tools](#-custom-tools)
+* [Project Structure](#-project-structure)
+* [Contributing](#-contributing)
+* [License](#-license)
 
-## Usage
+## 🚀 Usage
 
-### API Keys
+### 🔑 API Keys
 
 Set your API keys using the config command:
 
@@ -78,7 +79,7 @@ kiwi config set llm.model gpt-4o     # or claude-3-opus-20240229
 kiwi config set llm.api_key your-api-key-here
 ```
 
-### Execute Mode
+### ⚡ Execute Mode
 
 Get quick answers without starting a full chat session:
 
@@ -112,7 +113,7 @@ $ kiwi e "What is version control?"
 $ kiwi execute "What is version control?"
 ```
 
-### Shell Command Assistance
+### 🔧 Shell Command Assistance
 
 Get help with shell commands:
 
@@ -143,7 +144,7 @@ The tool will suggest a command and ask for confirmation before executing it.
 
 > **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
 
-### Interactive Chat
+### 💬 Interactive Chat
 
 Start an interactive chat session that maintains context:
 
@@ -181,7 +182,7 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 [gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s
 ```
 
-### Debug Mode
+### 🐞 Debug Mode
 
 Enable debug mode to see token usage and response time:
 
@@ -212,7 +213,43 @@ Key benefits:
 [gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
 ```
 
-## Configuration
+### 🛠️ Tool Calls
+
+Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
+
+```bash
+$ kiwi "summarise the contents of this directory"
+🔧 [Tool: filesystem:list] executed in 0.000s
+----------------------------------------------------------------
+
+Here's a summary of the contents of the current directory:
+
+- **Directories:**
+  - `.git/`: Version control directory for Git
+  - `.github/`: Contains GitHub-specific configurations or workflows
+  - `bin/`: Likely contains compiled binaries or scripts
+  - `cmd/`: Typically used for command-line tools or applications
+  - `docs/`: Documentation files
+  - `internal/`: Contains internal packages or modules
+
+- **Files:**
+  - `.gitignore`: Specifies files and directories to be ignored by Git
+  - `LICENSE`: License information for the project
+  - `Makefile`: Contains build instructions and commands
+  - `README.md`: Project description and usage instructions
+  - `go.mod`: Module definition file for Go projects
+  - `go.sum`: Checksums for Go module dependencies
+  - `install.sh`: Shell script for installation
+  - `kiwi`: Possibly an executable or script related to the project
+
+This structure suggests a Go-based project with version control and documentation setup.
+
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s
+```
+
+## ⚙️ Configuration
 
 Kiwi provides a simple configuration system:
 
@@ -240,11 +277,11 @@ ui:
   debug: false
 ```
 
-## Built-in Tools
+## 🧰 Built-in Tools
 
 Kiwi comes with several built-in tools accessible in chat sessions:
 
-### Filesystem Tools
+### 📂 Filesystem Tools
 ```
 - list_files: <directory>       # List files in a directory
 - read_file: <file_path>        # Read the contents of a file
@@ -252,20 +289,20 @@ Kiwi comes with several built-in tools accessible in chat sessions:
 - delete_file: <file_path>      # Delete a file
 ```
 
-### Shell Tools
+### 💻 Shell Tools
 ```
 - run_command: <command>        # Execute a shell command
 - command_help: <command>       # Get help for a command
 ```
 
-### System Info Tools
+### 🖥️ System Info Tools
 ```
 - system_info                   # Get OS information
 - disk_usage                    # Check disk space
 - memory_info                   # Get memory statistics
 ```
 
-## Custom Tools
+## 🔌 Custom Tools
 
 Kiwi can be extended with custom tools by implementing the core Tool interface:
 
@@ -304,21 +341,6 @@ func New() *Tool {
 func (t *Tool) Name() string { return t.name }
 func (t *Tool) Description() string { return t.description }
 func (t *Tool) Parameters() map[string]core.Parameter { return t.parameters }
-
-func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
-	param1, ok := args["param1"].(string)
-	if !ok {
-		return core.ToolExecutionResult{}, fmt.Errorf("param1 must be a string")
-	}
-	
-	// Tool logic here
-	output := fmt.Sprintf("Processed: %s", param1)
-	
-	return core.ToolExecutionResult{
-		ToolMethod: "process",
-		Output:     output,
-	}, nil
-}
 ```
 
 2. **Register your tool**:
@@ -346,7 +368,7 @@ We welcome contributions to expand Kiwi's capabilities with new tools! Some idea
 - Note-taking
 - Translation
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 kiwi/
@@ -361,7 +383,7 @@ kiwi/
 │   └── util/         # Utility functions
 ```
 
-## Contributing
+## 🤝 Contributing
 
 We welcome contributions from developers of all skill levels!
 
@@ -378,6 +400,6 @@ Ways to contribute:
 - Add support for new LLM providers
 - Enhance UI/UX in the terminal
 
-## License
+## 📄 License
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
