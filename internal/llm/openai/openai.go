@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 	openaiapi "github.com/sashabaranov/go-openai"
 	"github.com/saurabh0719/kiwi/internal/llm/core"
 	"github.com/saurabh0719/kiwi/internal/tools"
+	"github.com/saurabh0719/kiwi/internal/util"
 )
 
 // Adapter implements the Adapter interface for OpenAI
@@ -41,6 +43,56 @@ func (a *Adapter) Chat(ctx context.Context, messages []core.Message) (string, er
 	return response, err
 }
 
+// prepareTools converts the available tools to OpenAI tool definitions
+func (a *Adapter) prepareTools() []openaiapi.Tool {
+	if a.tools == nil {
+		return nil
+	}
+
+	var tools []openaiapi.Tool
+	toolsList := a.tools.List()
+
+	for _, tool := range toolsList {
+		// Create a JSON schema for the function parameters
+		params := tool.Parameters()
+
+		// Create a JSON schema structure
+		schema := map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+			"required":   []string{},
+		}
+
+		properties := schema["properties"].(map[string]interface{})
+		required := schema["required"].([]string)
+
+		for name, param := range params {
+			properties[name] = map[string]interface{}{
+				"type":        param.Type,
+				"description": param.Description,
+			}
+
+			if param.Required {
+				required = append(required, name)
+			}
+		}
+
+		schema["required"] = required
+
+		// Create a tool with a function definition
+		tools = append(tools, openaiapi.Tool{
+			Type: openaiapi.ToolTypeFunction,
+			Function: &openaiapi.FunctionDefinition{
+				Name:        tool.Name(),
+				Description: tool.Description(),
+				Parameters:  schema,
+			},
+		})
+	}
+
+	return tools
+}
+
 // ChatWithMetrics sends a message to OpenAI and returns the response with metrics
 func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) (string, *core.ResponseMetrics, error) {
 	// Build system prompt with tools
@@ -63,33 +115,129 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 		})
 	}
 
-	startTime := time.Now()
-	resp, err := a.client.CreateChatCompletion(
-		ctx,
-		openaiapi.ChatCompletionRequest{
-			Model:       a.model,
-			Messages:    openaiMessages,
-			Temperature: 0.7,
-		},
-	)
-	responseTime := time.Since(startTime)
-
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to create chat completion: %w", err)
+	// Set up the request
+	req := openaiapi.ChatCompletionRequest{
+		Model:       a.model,
+		Messages:    openaiMessages,
+		Temperature: 0.7,
 	}
 
-	if len(resp.Choices) == 0 {
-		return "", nil, fmt.Errorf("no completion choices returned")
+	// Add tool calling capability if we have tools
+	if a.tools != nil && len(a.tools.List()) > 0 {
+		tools := a.prepareTools()
+		if len(tools) > 0 {
+			req.Tools = tools
+			req.ToolChoice = "auto"
+		}
+	}
+
+	startTime := time.Now()
+	var finalResponse string
+	var responseTime time.Duration
+	var totalPromptTokens, totalCompletionTokens int
+
+	// Maximum number of function call iterations to prevent infinite loops
+	maxCalls := 5
+	callCount := 0
+
+	// Process the conversation with potential function calls
+	for callCount < maxCalls {
+		callCount++
+
+		resp, err := a.client.CreateChatCompletion(ctx, req)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to create chat completion: %w", err)
+		}
+
+		if len(resp.Choices) == 0 {
+			return "", nil, fmt.Errorf("no completion choices returned")
+		}
+
+		// Track token usage
+		totalPromptTokens += resp.Usage.PromptTokens
+		totalCompletionTokens += resp.Usage.CompletionTokens
+
+		choice := resp.Choices[0]
+
+		// Check if there's a tool call in the response
+		if choice.Message.ToolCalls != nil && len(choice.Message.ToolCalls) > 0 {
+			// Add the assistant's message with the tool calls to our conversation
+			openaiMessages = append(openaiMessages, choice.Message)
+
+			// Process each tool call
+			for _, toolCall := range choice.Message.ToolCalls {
+				if toolCall.Type != openaiapi.ToolTypeFunction {
+					continue
+				}
+
+				// Get the function name and arguments
+				functionName := toolCall.Function.Name
+				functionArgs := toolCall.Function.Arguments
+
+				// Get the tool to execute
+				tool, exists := a.tools.Get(functionName)
+				if !exists {
+					functionResult := fmt.Sprintf("Error: Function %s not found", functionName)
+
+					// Add the function result to our conversation
+					openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
+						Role:       "tool",
+						ToolCallID: toolCall.ID,
+						Content:    functionResult,
+					})
+
+					continue
+				}
+
+				// Parse the arguments
+				var args map[string]interface{}
+				if err := json.Unmarshal([]byte(functionArgs), &args); err != nil {
+					functionResult := fmt.Sprintf("Error parsing arguments: %v", err)
+
+					// Add the function result to our conversation
+					openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
+						Role:       "tool",
+						ToolCallID: toolCall.ID,
+						Content:    functionResult,
+					})
+
+					continue
+				}
+
+				// Execute the tool with visual feedback
+				functionResult, err := util.ExecuteToolWithFeedback(ctx, tool, args)
+				if err != nil {
+					functionResult = fmt.Sprintf("Error executing function: %v", err)
+				}
+
+				// Add the function result to our conversation
+				openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
+					Role:       "tool",
+					ToolCallID: toolCall.ID,
+					Content:    functionResult,
+				})
+			}
+
+			// Update the request with the new messages
+			req.Messages = openaiMessages
+
+			continue
+		}
+
+		// No tool call, so we have our final response
+		finalResponse = choice.Message.Content
+		responseTime = time.Since(startTime)
+		break
 	}
 
 	metrics := &core.ResponseMetrics{
-		PromptTokens:     resp.Usage.PromptTokens,
-		CompletionTokens: resp.Usage.CompletionTokens,
-		TotalTokens:      resp.Usage.TotalTokens,
+		PromptTokens:     totalPromptTokens,
+		CompletionTokens: totalCompletionTokens,
+		TotalTokens:      totalPromptTokens + totalCompletionTokens,
 		ResponseTime:     responseTime,
 	}
 
-	return resp.Choices[0].Message.Content, metrics, nil
+	return finalResponse, metrics, nil
 }
 
 // GetModel returns the model name being used
