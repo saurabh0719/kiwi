@@ -1,5 +1,6 @@
-# Kiwi
+![Image](https://github.com/user-attachments/assets/9e323659-f603-4b8f-8a24-da5f19169c38)
 
+<hr>
 A command-line interface for interacting with Large Language Models (LLMs) in terminal environments.
 
 ## Overview
