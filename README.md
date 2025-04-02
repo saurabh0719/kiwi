@@ -172,6 +172,8 @@ In the interactive chat mode, the timing breakdown shows that most of the time (
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
 
+![Image](https://github.com/user-attachments/assets/6d5ea17c-b49a-4dc9-8c6f-344950323853)
+
 ```bash
 ...
 
