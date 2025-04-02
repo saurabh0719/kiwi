@@ -7,6 +7,8 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 [![GitHub license](https://img.shields.io/github/license/saurabh0719/kiwi)](https://github.com/saurabh0719/kiwi/blob/main/LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://github.com/saurabh0719/kiwi)
 
+![Image](https://github.com/user-attachments/assets/62da0248-2c53-471e-80fe-43017fb87bc0)
+
 ## 📦 Installation
 
 ### Quick Install (Linux and macOS)
