@@ -9,6 +9,7 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 
 ![Image](https://github.com/user-attachments/assets/62da0248-2c53-471e-80fe-43017fb87bc0)
 
+<span id="installation"></span>
 ## 📦 Installation
 
 ### Quick Install (Linux and macOS)
@@ -50,26 +51,29 @@ sudo mv kiwi /usr/local/bin/
 
 ## 📑 Table of Contents
 
-* [Installation](#-installation)
-* [Usage](#-usage)
-  * [API Keys](#-api-keys)
-  * [Execute Mode](#-execute-mode)
-  * [Interactive Chat](#-interactive-chat)
-  * [Tool Calls](#-tool-calls)
-  * [Shell Command Assistance](#-shell-command-assistance)
-  * [Debug Mode](#-debug-mode)
-* [Configuration](#-configuration)
-* [Built-in Tools](#-built-in-tools)
-* [Custom Tools](#-custom-tools)
-* [Project Structure](#-project-structure)
-* [Contributing](#-contributing)
-* [License](#-license)
+* [Installation](#installation)
+* [Usage](#usage)
+  * [API Keys](#api-keys)
+  * [Execute Mode](#execute-mode)
+  * [Interactive Chat](#interactive-chat)
+  * [Tool Calls](#tool-calls)
+  * [Shell Command Assistance](#shell-command-assistance)
+  * [Debug Mode](#debug-mode)
+* [Configuration](#configuration)
+* [Built-in Tools](#built-in-tools)
+* [Custom Tools](#custom-tools)
+* [Contributing](#contributing)
+  * [Adding New LLM Providers](#adding-new-llm-providers)
+  * [Creating Custom Tools](#creating-custom-tools)
+* [License](#license)
 
+<span id="usage"></span>
 ## 🚀 Usage
 
+<span id="api-keys"></span>
 ### 🔑 API Keys
 
-Set your API keys using the config command:
+You'll need to provide your own API keys for the LLM providers you want to use. Set your API keys using the config command:
 
 ```bash
 kiwi config set llm.provider openai
@@ -77,8 +81,9 @@ kiwi config set llm.model gpt-4o
 kiwi config set llm.api_key your-api-key-here
 ```
 
-> **Note**: Currently only OpenAI is supported. Claude support will be added in a future update.
+> **Note**: Currently only OpenAI is supported. This repository is open for contributions to add more LLM providers.
 
+<span id="execute-mode"></span>
 ### ⚡ Execute Mode
 
 Get quick answers without starting a full chat session:
@@ -118,6 +123,7 @@ $ kiwi execute "What is version control?"
 ![Image](https://github.com/user-attachments/assets/2f157711-0aee-4e7e-bdad-0130ffcb3704)
 
 
+<span id="interactive-chat"></span>
 ### 💬 Interactive Chat
 
 Start an interactive chat session that maintains context:
@@ -160,6 +166,7 @@ In the interactive chat mode, the timing breakdown shows that most of the time (
 
 ![Image](https://github.com/user-attachments/assets/48ed57b7-0be9-4468-8a9a-4e64dcd97445)
 
+<span id="tool-calls"></span>
 ### 🛠️ Tool Calls
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
@@ -186,6 +193,7 @@ Kiwi can use built-in tools to perform tasks like interacting with the filesyste
 
 In this example, notice how the time is broken down between LLM processing (4.25s), tool execution (0.32s for filesystem:list), and other overhead (0.89s), giving you insights into where the processing time is being spent.
 
+<span id="shell-command-assistance"></span>
 ### 🔧 Shell Command Assistance
 
 Get help with shell commands:
@@ -217,6 +225,7 @@ The tool will suggest a command and ask for confirmation before executing it.
 
 > **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
 
+<span id="debug-mode"></span>
 ### 🐞 Debug Mode
 
 Enable debug mode to see token usage and detailed timing metrics:
@@ -274,6 +283,7 @@ $ kiwi config set ui.streaming false  # Disable streaming for all commands
 When streaming is enabled (default), you'll see the response being generated word by word.
 When disabled, the response will appear all at once after it's complete, which can be useful for scripting or when you prefer to see the finished response.
 
+<span id="configuration"></span>
 ## ⚙️ Configuration
 
 Kiwi provides a simple configuration system:
@@ -295,3 +305,134 @@ kiwi config set ui.streaming true
 
 - **Debug Mode** (`ui.debug`): When enabled, shows token usage, response time, and API cost statistics after each response
 - **Streaming Mode** (`ui.streaming`): Controls whether responses are displayed incrementally (true) or all at once when completed (false)
+
+
+<span id="contributing"></span>
+## 🤝 Contributing
+
+Contributions to Kiwi are welcome! If you're interested in contributing, please follow these steps:
+
+1. Fork the repository
+2. Create a new branch
+3. Make your changes
+4. Run the tests
+5. Submit a pull request
+
+Kiwi needs more contribution to add support for more LLM providers and create custom tools to enhance functionality for CLI specific workflows.
+
+<span id="adding-new-llm-providers"></span>
+### 🧠 Adding New LLM Providers
+
+You can extend Kiwi to work with additional LLM providers beyond the built-in ones:
+
+```go
+// Create a new provider that implements the Adapter interface
+type ClaudeAdapter struct {
+    apiKey string
+    model  string
+    tools  *tools.Registry
+}
+
+// Implement required methods
+func (c *ClaudeAdapter) Chat(ctx context.Context, messages []core.Message) (string, error) {
+    // Implementation for Claude API
+    // ...
+}
+
+func (c *ClaudeAdapter) ChatWithMetrics(ctx context.Context, messages []core.Message) (string, *core.ResponseMetrics, error) {
+    // Implementation with metrics
+    // ...
+}
+
+func (c *ClaudeAdapter) ChatStream(ctx context.Context, messages []core.Message, handler core.StreamHandler) (*core.ResponseMetrics, error) {
+    // Implementation for streaming responses
+    // ...
+}
+
+func (c *ClaudeAdapter) GetModel() string {
+    return c.model
+}
+
+func (c *ClaudeAdapter) GetProvider() string {
+    return "claude"
+}
+
+// Register your provider factory
+func init() {
+    llm.RegisterAdapter("claude", func(model, apiKey string, tools *tools.Registry) (core.Adapter, error) {
+        return &ClaudeAdapter{
+            apiKey: apiKey,
+            model:  model,
+            tools:  tools,
+        }, nil
+    })
+}
+```
+
+<span id="creating-custom-tools"></span>
+### 🛠️ Creating Custom Tools
+
+Add your own tools to extend Kiwi's capabilities:
+
+```go
+// Define a new tool
+type WeatherTool struct {
+    apiKey string
+}
+
+// Implement the Tool interface
+func (w *WeatherTool) Name() string {
+    return "weather"
+}
+
+func (w *WeatherTool) Description() string {
+    return "Get current weather information for a location"
+}
+
+func (w *WeatherTool) Parameters() map[string]core.Parameter {
+    return map[string]core.Parameter{
+        "location": {
+            Type:        "string",
+            Description: "City name or coordinates",
+            Required:    true,
+        },
+        "units": {
+            Type:        "string",
+            Description: "Temperature units (metric/imperial)",
+            Required:    false,
+            Default:     "metric",
+        },
+    }
+}
+
+func (w *WeatherTool) Execute(ctx context.Context, params map[string]interface{}) (core.ToolExecutionResult, error) {
+    result := core.ToolExecutionResult{
+        ToolMethod: "weather",
+    }
+    
+    location, ok := params["location"].(string)
+    if !ok {
+        return result, errors.New("location parameter is required")
+    }
+    
+    // Call weather API
+    result.AddStep("Retrieving weather data for " + location)
+    
+    // Process and return results
+    result.Output = "Weather information for " + location + "..."
+    
+    return result, nil
+}
+
+// Register your tool
+func init() {
+    tools.Register("weather", func() core.Tool {
+        return &WeatherTool{apiKey: os.Getenv("WEATHER_API_KEY")}
+    })
+}
+```
+
+<span id="license"></span>
+## 📄 License
+
+Kiwi is licensed under the MIT License. See the [LICENSE](https://github.com/saurabh0719/kiwi/blob/main/LICENSE) file for more details.
