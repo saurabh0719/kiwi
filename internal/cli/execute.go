@@ -39,6 +39,11 @@ Since this is a single interaction:
 - Optimize for efficiency and immediate utility
 - Format responses for terminal readability
 
+When handling shell commands:
+- ALWAYS use the shell tool to execute commands when users ask for file operations, git commands, or system tasks
+- If the user's request implies running a terminal command, use the shell tool rather than just showing commands
+- Examples: "list files," "find large files," "add files to git," etc. should all use the shell tool
+
 For technical content:
 - Use code blocks for commands and code snippets
 - Include brief explanations when needed
@@ -53,9 +58,6 @@ Remember that users in execute mode typically want quick, actionable information
 		},
 	}
 
-	// Initialize a complete response string to store the entire response
-	completeResponse := ""
-
 	// Get the global spinner manager
 	spinnerManager := util.GetGlobalSpinnerManager()
 
@@ -68,26 +70,93 @@ Remember that users in execute mode typically want quick, actionable information
 	// Track time for metrics
 	startTime := time.Now()
 	var metrics *core.ResponseMetrics
+	var completeResponse string
+	var toolExecuted bool
 
 	if cfg.UI.Streaming {
-		// Stream the response
-		metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
-			// On first chunk, make sure no spinner is active
-			if completeResponse == "" {
-				// Clear spinner before printing any output
-				util.PrepareForResponse(spinnerManager)
+		// Use our shared streaming handler with tool detection
+		metrics, toolExecuted, completeResponse, err = llm.ProcessStreamWithToolDetection(
+			context.Background(),
+			adapter,
+			messages,
+			func(chunk string) error {
+				// On first chunk, make sure no spinner is active
+				if completeResponse == "" {
+					// Clear spinner before printing any output
+					util.PrepareForResponse(spinnerManager)
+				}
+				// Print the chunk without a newline
+				fmt.Print(chunk)
+				return nil
+			},
+			llm.DefaultToolExecutionDetector,
+		)
+
+		// Handle specific error cases gracefully
+		if err != nil {
+			// Use shared error handler for null content after tool execution
+			if llm.HandleNullContentError(err, toolExecuted) {
+				// We'll print the response divider and continue as normal
+				if completeResponse == "" {
+					fmt.Println("\nCommand executed successfully.")
+				}
+				util.PrintExecuteEndDivider()
+
+				// Create minimal metrics
+				metrics = &core.ResponseMetrics{
+					ResponseTime: time.Since(startTime),
+				}
+
+				// Print debug info if enabled
+				if cfg.UI.Debug {
+					core.PrintResponseMetrics(metrics, adapter.GetModel())
+				}
+
+				// Return without error
+				return nil
 			}
 
-			// Print the chunk without a newline
-			fmt.Print(chunk)
-			// Append the chunk to the complete response
-			completeResponse += chunk
-			return nil
-		})
+			// For other errors, show the divider and return the error
+			util.PrintExecuteEndDivider()
+			return fmt.Errorf("failed to get response: %w", err)
+		}
 	} else {
-		// Get the complete response at once
+		// Use shared non-streaming handler
 		var response string
-		response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
+		response, toolExecuted, metrics, err = llm.HandleNonStreamingResponse(
+			context.Background(),
+			adapter,
+			messages,
+			llm.DefaultToolExecutionDetector,
+		)
+
+		// Handle null content errors in non-streaming mode
+		if err != nil {
+			// Use shared error handler
+			if llm.HandleNullContentError(err, toolExecuted) {
+				// Print a generic success message
+				util.PrepareForResponse(spinnerManager)
+				fmt.Println("Command executed successfully.")
+
+				// Create minimal metrics for debug mode
+				metrics = &core.ResponseMetrics{
+					ResponseTime: time.Since(startTime),
+				}
+
+				util.PrintExecuteEndDivider()
+
+				// Print debug info if enabled
+				if cfg.UI.Debug {
+					core.PrintResponseMetrics(metrics, adapter.GetModel())
+				}
+
+				// Return without error
+				return nil
+			}
+
+			util.PrintExecuteEndDivider()
+			return fmt.Errorf("failed to get response: %w", err)
+		}
 
 		// Clear spinner before printing any output
 		util.PrepareForResponse(spinnerManager)
@@ -100,10 +169,6 @@ Remember that users in execute mode typically want quick, actionable information
 	// No need to stop spinners again, as it's already done before printing the output
 	// Just print the divider after the response
 	util.PrintExecuteEndDivider()
-
-	if err != nil {
-		return fmt.Errorf("failed to get response: %w", err)
-	}
 
 	// If metrics is nil (can happen if the stream fails), create empty metrics
 	if metrics == nil {

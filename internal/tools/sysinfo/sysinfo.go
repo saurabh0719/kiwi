@@ -185,3 +185,8 @@ func isSensitiveEnvVar(name string) bool {
 
 // startTime is used to calculate uptime
 var startTime = time.Now()
+
+// RequiresConfirmation returns whether this tool requires confirmation before execution
+func (t *Tool) RequiresConfirmation() bool {
+	return false
+}

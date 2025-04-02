@@ -15,12 +15,10 @@ var (
 
 	// Command declarations
 	assistantCmd *cobra.Command
-	shellCmd     *cobra.Command
 	configCmd    *cobra.Command
 
 	// Shorthand flags
 	assistantFlag bool
-	terminalFlag  string
 	configFlag    bool
 	configGet     string
 	configSet     []string
@@ -43,8 +41,8 @@ Examples:
   # Execute a prompt directly (no quotes needed)
   kiwi what is the capital of France
 
-  # Terminal command assistance
-  kiwi -t list all files in this directory
+  # Execute shell commands
+  kiwi create a shell script to backup my Documents folder
 
   # Start a new assistant session (chat)
   kiwi -a
@@ -67,8 +65,6 @@ Configuration:
 			switch {
 			case assistantFlag:
 				return startAssistant(cmd, args)
-			case terminalFlag != "":
-				return handleTerminalHelp(cmd, terminalFlag)
 			case configFlag:
 				if len(configGet) > 0 {
 					return handleConfigGet(cmd, []string{configGet})
@@ -103,7 +99,6 @@ Configuration:
 
 	// Shorthand command flags
 	rootCmd.Flags().BoolVarP(&assistantFlag, "assistant", "a", false, "Start a new assistant session (interactive chat)")
-	rootCmd.Flags().StringVarP(&terminalFlag, "terminal", "t", "", "Get help with a terminal command")
 
 	// Config flags
 	rootCmd.Flags().BoolVarP(&configFlag, "config", "c", false, "Manage configuration (defaults to list)")
@@ -118,12 +113,10 @@ Configuration:
 func setupCommands() {
 	// Initialize commands
 	initAssistantCmd()
-	initShellCmd()
 	initConfigCmd()
 
 	// Add commands to root
 	rootCmd.AddCommand(assistantCmd)
-	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(configCmd)
 }
 

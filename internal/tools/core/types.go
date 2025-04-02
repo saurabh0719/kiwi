@@ -23,6 +23,9 @@ type Tool interface {
 
 	// Execute runs the tool with the provided parameters
 	Execute(ctx context.Context, params map[string]interface{}) (ToolExecutionResult, error)
+
+	// RequiresConfirmation returns true if this tool should ask for user confirmation before executing
+	RequiresConfirmation() bool
 }
 
 // ToolExecutionResult is the result of a tool execution

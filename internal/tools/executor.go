@@ -23,6 +23,35 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 	// Show a spinner while tool is executing
 	spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
 
+	// Check if tool requires confirmation before execution
+	if tool.RequiresConfirmation() {
+		// Stop the spinner to show the confirmation prompt
+		spinnerManager.TransitionToResponse()
+
+		// Show confirmation message
+		fmt.Println()
+		util.InfoColor.Printf("[Tool: %s] requires confirmation:\n", toolName)
+		if command, ok := args["command"].(string); ok {
+			util.OutputColor.Println(command)
+		} else {
+			util.OutputColor.Printf("Execute %s with params: %v\n", toolName, args)
+		}
+		fmt.Println()
+
+		// Ask for confirmation
+		confirmed, err := util.PromptForConfirmation("Do you want to execute this command? (y/N): ")
+		if err != nil {
+			return "", fmt.Errorf("confirmation failed: %w", err)
+		}
+
+		if !confirmed {
+			return "", fmt.Errorf("user declined to execute the command")
+		}
+
+		// Restart the spinner
+		spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
+	}
+
 	// Start the execution timer
 	startTime := time.Now()
 
@@ -74,6 +103,11 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 
 // ExecuteTool executes a tool with no visual feedback
 func ExecuteTool(ctx context.Context, tool core.Tool, args map[string]interface{}) (string, error) {
+	// If the tool requires confirmation, we need to use the feedback version
+	if tool.RequiresConfirmation() {
+		return ExecuteToolWithFeedback(ctx, tool, args)
+	}
+
 	toolExecutionResult, err := tool.Execute(ctx, args)
 	if err != nil {
 		return "", err

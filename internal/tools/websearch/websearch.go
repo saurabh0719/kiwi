@@ -209,3 +209,8 @@ func (t *Tool) extractReadableContent(html string) string {
 
 	return html
 }
+
+// RequiresConfirmation returns whether this tool requires confirmation before execution
+func (t *Tool) RequiresConfirmation() bool {
+	return false
+}

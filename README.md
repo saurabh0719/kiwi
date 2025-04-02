@@ -48,7 +48,7 @@ sudo mv kiwi /usr/local/bin/
 - **Execute Mode**: Run one-off prompts for quick answers
 - **Interactive Assistant**: Maintain context in ongoing conversations
 - **Built-in Tools**: Filesystem operations, shell commands, system information
-- **Terminal Command Assistance**: Get terminal command suggestions with confirmation
+- **Integrated Shell Commands**: Execute terminal commands with safety confirmations
 
 ## 📑 Table of Contents
 
@@ -59,7 +59,7 @@ sudo mv kiwi /usr/local/bin/
   * [Interactive Assistant](#interactive-assistant)
   * [Tool Calls](#tool-calls)
   * [Built-in Tools](#built-in-tools)
-  * [Terminal Command Assistance](#terminal-command-assistance)
+  * [Shell Commands](#terminal-command-assistance)
   * [Debug Mode](#debug-mode)
 * [Configuration](#configuration)
 * [Contributing](#contributing)
@@ -198,9 +198,54 @@ Kiwi comes with several built-in tools that extend its capabilities beyond simpl
 #### 🖥️ Shell Tool
 
 **Features:**
-- Limited to a whitelist of safe commands (`ls`, `cat`, `grep`, `find`, `pwd`, `head`, `tail`, `wc`, `echo`, `date`, `ps`, `df`, `du`, `free`, `top`)
-- Pipeline support for combining simple commands
-- Command validation to prevent dangerous operations
+- Execute any shell command directly from your conversational flow
+- Pipeline support for combining commands
+- Built-in confirmation prompt for security
+
+**Example:**
+```bash
+$ ./kiwi what files are in this directory using git
+----------------------------------------------------------------
+
+
+[Tool: shell] requires confirmation:
+git ls-files
+
+Do you want to execute this command? (y/N): y
+🔧 [Tool: shell:git] executed in 0.009s
+  → Command requested: git ls-files
+  → Executing: git ls-files
+  → Command completed successfully with 42 lines (899 bytes) of output
+
+Here are the files tracked by Git in this directory:
+
+.gitignore
+LICENSE
+Makefile
+README.md
+cmd/kiwi/main.go
+docs/CNAME
+docs/README.md
+docs/_config.yml
+docs/favicon.ico
+docs/index.html
+docs/script.js
+docs/styles.css
+go.mod
+go.sum
+install.sh
+
+These files are currently under version control in the repository.
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 1182 prompt + 278 completion = 1460 total | Time: 11.01s (LLM: 4.75s, Tools: 6.26s, Other: 0.00s)
+```
+
+This example shows how Kiwi naturally integrates shell commands into the conversation:
+1. You simply ask for what you need in natural language
+2. Kiwi translates your request into the appropriate shell command
+3. The command is shown to you for confirmation before execution
+4. After approval, the command is executed and results are displayed
 
 #### 🔍 System Info Tool
 
@@ -216,36 +261,34 @@ Kiwi comes with several built-in tools that extend its capabilities beyond simpl
 - Content truncation for very large pages
 
 <span id="terminal-command-assistance"></span>
-### 🔧 Terminal Command Assistance
+### 🔧 Shell Commands
 
-Get help with terminal commands using the `-t` flag:
+Shell commands are now fully integrated into Kiwi's conversational flow. Simply ask for the command you need in natural language:
 
 ```bash
-# Terminal command assistance
-$ kiwi -t find all pdf files modified in the last week
+# Ask for terminal commands directly
+$ kiwi find all pdf files modified in the last week
 ----------------------------------------------------------------
 
-Suggested command:
+I'll help you find PDF files modified in the last week. Here's what I'll do:
+
+[Tool: shell] requires confirmation:
 find ~ -name "*.pdf" -type f -mtime -7
 
-This command will:
-- Search in your home directory (~)
-- Find all files with .pdf extension
-- Only include regular files (not directories)
-- Filter for files modified in the last 7 days
+Do you want to execute this command? (y/N): y
+🔧 [Tool: shell:find] executed in 0.032s
+  → Command requested: find ~ -name "*.pdf" -type f -mtime -7
+  → Executing: find ~ -name "*.pdf" -type f -mtime -7
+  → Command completed successfully with 3 lines (87 bytes) of output
 
-----------------------------------------------------------------
-
-Do you want to execute this command? (y/n): y
-
+I found these PDF files that were modified in the last 7 days:
 /home/user/Documents/report.pdf
 /home/user/Downloads/manual.pdf
 /home/user/Projects/presentation.pdf
+----------------------------------------------------------------
 ```
 
-The tool will suggest a command and ask for confirmation before executing it.
-
-> **Note**: For complex commands with pipelines, use execute mode which provides better handling.
+Kiwi will suggest a command and ask for confirmation before executing it, ensuring safety while maintaining a natural conversational experience.
 
 <span id="debug-mode"></span>
 ### 🐞 Debug Mode

@@ -285,3 +285,8 @@ func isPathSafe(path string) bool {
 	// Check if path tries to escape working directory
 	return !filepath.IsAbs(rel) && !strings.HasPrefix(rel, "..")
 }
+
+// RequiresConfirmation returns whether this tool requires confirmation before execution
+func (t *Tool) RequiresConfirmation() bool {
+	return false
+}

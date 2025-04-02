@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	openaiapi "github.com/sashabaranov/go-openai"
@@ -129,6 +130,12 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 		if err != nil {
 			// Stop spinner on error
 			spinnerManager.TransitionToResponse()
+
+			// Check for specific error types and translate them
+			if strings.Contains(err.Error(), "Invalid value for 'content': expected a string, got null") {
+				return "", nil, core.ErrNullContent
+			}
+
 			return "", nil, fmt.Errorf("failed to create chat completion: %w", err)
 		}
 
@@ -166,7 +173,18 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 
 		// No tool call, so we have our final response
 		spinnerManager.TransitionToResponse() // Stop spinner before returning response
-		finalResponse = choice.Message.Content
+
+		// Handle potential null content (which can happen after tool calls)
+		if choice.Message.Content == "" {
+			// If we have tool calls in the conversation, summarize the results
+			if callCount > 1 {
+				finalResponse = "Command executed successfully."
+			} else {
+				finalResponse = "No response received."
+			}
+		} else {
+			finalResponse = choice.Message.Content
+		}
 		break
 	}
 
@@ -330,6 +348,7 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 	// Maximum number of function call iterations
 	maxCalls := 10
 	callCount := 0
+	hadToolCalls := false
 
 	// Process conversation with potential tool calls in a loop
 	for callCount < maxCalls {
@@ -340,9 +359,21 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		toolCallDetected, streamTokens, err := a.processStream(ctx, openaiMessages, handler)
 		llmTime += time.Since(llmStartTime)
 		if err != nil {
-			// Ensure any spinner is stopped on error
-			spinnerManager.TransitionToResponse()
-			return nil, err
+			// If we already had tool calls and this is a null content error,
+			// we'll add a fallback message instead of returning an error
+			if hadToolCalls && core.IsNullContentError(err) {
+				// Add a fallback response since we've already executed commands
+				if err := handler("\nCommand executed successfully."); err != nil {
+					spinnerManager.TransitionToResponse()
+					return nil, fmt.Errorf("handler error: %w", err)
+				}
+				streamTokens += 4 // Approximate token count for the fallback message
+				// Continue processing normally - don't return the error
+			} else {
+				// For other errors, ensure any spinner is stopped and return the error
+				spinnerManager.TransitionToResponse()
+				return nil, err
+			}
 		}
 
 		totalTokensGenerated += streamTokens
@@ -352,6 +383,9 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 			break
 		}
 
+		// Mark that we had tool calls in this conversation
+		hadToolCalls = true
+
 		// Process tool calls through non-streaming API
 		toolStartTime := time.Now()
 		updatedMessages, promptTokens, completionTokens, err := a.processToolCallsNonStreaming(ctx, openaiMessages)
@@ -359,7 +393,17 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		if err != nil {
 			// Ensure any spinner is stopped on error
 			spinnerManager.TransitionToResponse()
-			return nil, err
+
+			// If this is a null content error and we've already executed tools,
+			// add a generic completion message instead of failing
+			if core.IsNullContentError(err) && hadToolCalls {
+				if err := handler("\nCommand processed successfully."); err != nil {
+					return nil, fmt.Errorf("handler error: %w", err)
+				}
+				// Continue execution without returning an error
+			} else {
+				return nil, err
+			}
 		}
 
 		openaiMessages = updatedMessages
@@ -395,6 +439,10 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 
 	stream, err := a.client.CreateChatCompletionStream(ctx, req)
 	if err != nil {
+		// Check for specific error types and translate them
+		if strings.Contains(err.Error(), "Invalid value for 'content': expected a string, got null") {
+			return false, 0, core.ErrNullContent
+		}
 		return false, 0, fmt.Errorf("failed to create chat completion stream: %w", err)
 	}
 	defer stream.Close()
@@ -404,6 +452,7 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 	var messageContent string
 	tokensGenerated := 0
 	firstToken := true
+	emptyContent := true // Track if we've received any content
 
 	// Process the stream
 	for {
@@ -425,6 +474,7 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 			// Collect content from the stream
 			if choice.Delta.Content != "" {
 				messageContent += choice.Delta.Content
+				emptyContent = false
 
 				// On first token, ensure any tool execution spinner is stopped
 				if firstToken {
@@ -455,6 +505,16 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 		}
 	}
 
+	// If we detected tool calls but received no content, add a default message
+	if toolCallDetected && emptyContent {
+		if len(messages) > 2 { // Check if we already have some message history (likely tool calls)
+			if err := handler("Command execution completed."); err != nil {
+				return false, tokensGenerated, fmt.Errorf("handler error: %w", err)
+			}
+			tokensGenerated += 4
+		}
+	}
+
 	return toolCallDetected, tokensGenerated, nil
 }
 
@@ -474,6 +534,12 @@ func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []o
 	if err != nil {
 		// Stop spinner on error
 		spinnerManager.TransitionToResponse()
+
+		// Check for specific error types and translate them
+		if strings.Contains(err.Error(), "Invalid value for 'content': expected a string, got null") {
+			return messages, 0, 0, core.ErrNullContent
+		}
+
 		return messages, 0, 0, fmt.Errorf("failed to create non-streaming chat completion: %w", err)
 	}
 
