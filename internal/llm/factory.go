@@ -3,7 +3,6 @@ package llm
 import (
 	"fmt"
 
-	"github.com/saurabh0719/kiwi/internal/llm/claude"
 	"github.com/saurabh0719/kiwi/internal/llm/core"
 	"github.com/saurabh0719/kiwi/internal/llm/openai"
 	"github.com/saurabh0719/kiwi/internal/tools"
@@ -23,9 +22,10 @@ func NewAdapter(provider, model, apiKey string, tools *tools.Registry) (Adapter,
 	switch provider {
 	case "openai":
 		return openai.New(model, apiKey, tools)
-	case "claude":
-		return claude.New(model, apiKey, tools)
+	// Claude support will be added in the future
+	// case "claude":
+	//   return claude.New(model, apiKey, tools)
 	default:
-		return nil, fmt.Errorf("unsupported provider: %s", provider)
+		return nil, fmt.Errorf("unsupported provider: %s (only 'openai' is currently supported)", provider)
 	}
 }

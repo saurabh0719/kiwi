@@ -95,45 +95,13 @@ func (a *Adapter) prepareTools() []openaiapi.Tool {
 
 // ChatWithMetrics sends a message to OpenAI and returns the response with metrics
 func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) (string, *core.ResponseMetrics, error) {
-	// Build system prompt with tools
-	systemPrompt := core.DefaultSystemPrompt
-	if a.tools != nil {
-		systemPrompt += "\n\n" + a.tools.GetToolsDescription()
-	}
-
-	openaiMessages := []openaiapi.ChatCompletionMessage{
-		{
-			Role:    "system",
-			Content: systemPrompt,
-		},
-	}
-
-	for _, msg := range messages {
-		openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
-			Role:    msg.Role,
-			Content: msg.Content,
-		})
-	}
-
-	// Set up the request
-	req := openaiapi.ChatCompletionRequest{
-		Model:       a.model,
-		Messages:    openaiMessages,
-		Temperature: 0.7,
-	}
-
-	// Add tool calling capability if we have tools
-	if a.tools != nil && len(a.tools.List()) > 0 {
-		tools := a.prepareTools()
-		if len(tools) > 0 {
-			req.Tools = tools
-			req.ToolChoice = "auto"
-		}
-	}
-
 	startTime := time.Now()
+
+	// Prepare the initial messages and request
+	openaiMessages := a.prepareInitialMessages(messages)
+	req := a.createChatCompletionRequest(openaiMessages, false) // false = not streaming
+
 	var finalResponse string
-	var responseTime time.Duration
 	var totalPromptTokens, totalCompletionTokens int
 
 	// Maximum number of function call iterations to prevent infinite loops
@@ -164,72 +132,21 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 			// Add the assistant's message with the tool calls to our conversation
 			openaiMessages = append(openaiMessages, choice.Message)
 
-			// Process each tool call
-			for _, toolCall := range choice.Message.ToolCalls {
-				if toolCall.Type != openaiapi.ToolTypeFunction {
-					continue
-				}
-
-				// Get the function name and arguments
-				functionName := toolCall.Function.Name
-				functionArgs := toolCall.Function.Arguments
-
-				// Get the tool to execute
-				tool, exists := a.tools.Get(functionName)
-				if !exists {
-					functionResult := fmt.Sprintf("Error: Function %s not found", functionName)
-
-					// Add the function result to our conversation
-					openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
-						Role:       "tool",
-						ToolCallID: toolCall.ID,
-						Content:    functionResult,
-					})
-
-					continue
-				}
-
-				// Parse the arguments
-				var args map[string]interface{}
-				if err := json.Unmarshal([]byte(functionArgs), &args); err != nil {
-					functionResult := fmt.Sprintf("Error parsing arguments: %v", err)
-
-					// Add the function result to our conversation
-					openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
-						Role:       "tool",
-						ToolCallID: toolCall.ID,
-						Content:    functionResult,
-					})
-
-					continue
-				}
-
-				// Execute the tool with visual feedback
-				functionResult, err := util.ExecuteToolWithFeedback(ctx, tool, args)
-				if err != nil {
-					functionResult = fmt.Sprintf("Error executing function: %v", err)
-				}
-
-				// Add the function result to our conversation
-				openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
-					Role:       "tool",
-					ToolCallID: toolCall.ID,
-					Content:    functionResult,
-				})
-			}
+			// Process each tool call and add results to messages
+			toolCallResults := a.processToolCalls(ctx, choice.Message.ToolCalls)
+			openaiMessages = append(openaiMessages, toolCallResults...)
 
 			// Update the request with the new messages
 			req.Messages = openaiMessages
-
 			continue
 		}
 
 		// No tool call, so we have our final response
 		finalResponse = choice.Message.Content
-		responseTime = time.Since(startTime)
 		break
 	}
 
+	responseTime := time.Since(startTime)
 	metrics := &core.ResponseMetrics{
 		PromptTokens:     totalPromptTokens,
 		CompletionTokens: totalCompletionTokens,
@@ -238,6 +155,285 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 	}
 
 	return finalResponse, metrics, nil
+}
+
+// prepareInitialMessages converts core.Message array to OpenAI messages with system prompt
+func (a *Adapter) prepareInitialMessages(messages []core.Message) []openaiapi.ChatCompletionMessage {
+	// Build system prompt with tools
+	systemPrompt := core.DefaultSystemPrompt
+	if a.tools != nil {
+		systemPrompt += "\n\n" + a.tools.GetToolsDescription()
+	}
+
+	openaiMessages := []openaiapi.ChatCompletionMessage{
+		{
+			Role:    "system",
+			Content: systemPrompt,
+		},
+	}
+
+	for _, msg := range messages {
+		openaiMessages = append(openaiMessages, openaiapi.ChatCompletionMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
+
+	return openaiMessages
+}
+
+// createChatCompletionRequest creates a request object for the OpenAI API
+func (a *Adapter) createChatCompletionRequest(messages []openaiapi.ChatCompletionMessage, streaming bool) openaiapi.ChatCompletionRequest {
+	// Set up the request
+	req := openaiapi.ChatCompletionRequest{
+		Model:       a.model,
+		Messages:    messages,
+		Temperature: 0.7,
+		Stream:      streaming,
+	}
+
+	// Add tool calling capability if we have tools
+	if a.tools != nil && len(a.tools.List()) > 0 {
+		tools := a.prepareTools()
+		if len(tools) > 0 {
+			req.Tools = tools
+			req.ToolChoice = "auto"
+		}
+	}
+
+	return req
+}
+
+// processToolCalls processes a slice of tool calls and returns their results as messages
+func (a *Adapter) processToolCalls(ctx context.Context, toolCalls []openaiapi.ToolCall) []openaiapi.ChatCompletionMessage {
+	var resultMessages []openaiapi.ChatCompletionMessage
+
+	for _, toolCall := range toolCalls {
+		if toolCall.Type != openaiapi.ToolTypeFunction {
+			continue
+		}
+
+		// Get the function name and arguments
+		functionName := toolCall.Function.Name
+		functionArgs := toolCall.Function.Arguments
+
+		var functionResult string
+
+		// Verify function arguments are present and valid
+		if functionArgs == "" || functionArgs == "{}" || !json.Valid([]byte(functionArgs)) {
+			functionResult = fmt.Sprintf("Error: Missing or invalid arguments for function %s. Please provide valid arguments.", functionName)
+		} else {
+			// Try to execute the function
+			functionResult = a.executeToolCall(ctx, functionName, functionArgs, toolCall.ID)
+		}
+
+		// Add the function result to our conversation
+		resultMessages = append(resultMessages, openaiapi.ChatCompletionMessage{
+			Role:       "tool",
+			ToolCallID: toolCall.ID,
+			Content:    functionResult,
+		})
+	}
+
+	return resultMessages
+}
+
+// executeToolCall executes a single tool call and returns the result
+func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArgs, toolCallID string) string {
+	// Get the tool to execute
+	tool, exists := a.tools.Get(functionName)
+	if !exists {
+		return fmt.Sprintf("Error: Function %s not found", functionName)
+	}
+
+	// Parse the arguments
+	var args map[string]interface{}
+	if err := json.Unmarshal([]byte(functionArgs), &args); err != nil {
+		return fmt.Sprintf("Error parsing arguments: %v", err)
+	}
+
+	// Check for missing required parameters for filesystem tool
+	if functionName == "filesystem" {
+		missingParams := a.checkFilesystemParams(args)
+		if len(missingParams) > 0 {
+			return fmt.Sprintf("Error: Missing required parameters for function %s: %v. Please provide all required parameters.",
+				functionName, missingParams)
+		}
+	}
+
+	// Execute the tool with visual feedback
+	result, err := util.ExecuteToolWithFeedback(ctx, tool, args)
+	if err != nil {
+		return fmt.Sprintf("Error executing function: %v", err)
+	}
+
+	return result
+}
+
+// checkFilesystemParams checks if the filesystem tool has all required parameters
+func (a *Adapter) checkFilesystemParams(args map[string]interface{}) []string {
+	missingParams := []string{}
+
+	// Check for required operation parameter
+	if _, exists := args["operation"]; !exists {
+		missingParams = append(missingParams, "operation")
+	}
+
+	// Check for required path parameter
+	if _, exists := args["path"]; !exists {
+		missingParams = append(missingParams, "path")
+	}
+
+	return missingParams
+}
+
+// ChatStream sends a message to OpenAI and streams the response tokens to the handler function
+func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handler core.StreamHandler) (*core.ResponseMetrics, error) {
+	startTime := time.Now()
+
+	// Prepare initial messages and variables for tracking
+	openaiMessages := a.prepareInitialMessages(messages)
+	var totalTokensGenerated int
+	var totalPromptTokens, totalCompletionTokens int
+
+	// Maximum number of function call iterations to prevent infinite loops
+	maxCalls := 10
+	callCount := 0
+
+	// Process conversation with potential tool calls in a loop
+	for callCount < maxCalls {
+		callCount++
+
+		// Process stream and check for tool calls
+		toolCallDetected, streamTokens, err := a.processStream(ctx, openaiMessages, handler)
+		if err != nil {
+			return nil, err
+		}
+
+		totalTokensGenerated += streamTokens
+
+		// If no tool calls were detected, we're done
+		if !toolCallDetected {
+			break
+		}
+
+		// Process tool calls through non-streaming API
+		updatedMessages, promptTokens, completionTokens, err := a.processToolCallsNonStreaming(ctx, openaiMessages)
+		if err != nil {
+			return nil, err
+		}
+
+		openaiMessages = updatedMessages
+		totalPromptTokens += promptTokens
+		totalCompletionTokens += completionTokens
+	}
+
+	responseTime := time.Since(startTime)
+
+	// With streaming, we don't get accurate token counts, so this is an estimation
+	metrics := &core.ResponseMetrics{
+		PromptTokens:     totalPromptTokens,
+		CompletionTokens: totalCompletionTokens + totalTokensGenerated,
+		TotalTokens:      totalPromptTokens + totalCompletionTokens + totalTokensGenerated,
+		ResponseTime:     responseTime,
+	}
+
+	return metrics, nil
+}
+
+// processStream handles the streaming part of the response and detects tool calls
+func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCompletionMessage, handler core.StreamHandler) (bool, int, error) {
+	// Create streaming request
+	req := a.createChatCompletionRequest(messages, true) // true = streaming
+
+	stream, err := a.client.CreateChatCompletionStream(ctx, req)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to create chat completion stream: %w", err)
+	}
+	defer stream.Close()
+
+	// Flag to track if we need to handle tool calls
+	toolCallDetected := false
+	var messageContent string
+	tokensGenerated := 0
+
+	// Process the stream
+	for {
+		response, err := stream.Recv()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return false, tokensGenerated, fmt.Errorf("stream error: %w", err)
+		}
+
+		// Skip empty choices
+		if len(response.Choices) == 0 {
+			continue
+		}
+
+		// Process each delta
+		for _, choice := range response.Choices {
+			// Collect content from the stream
+			if choice.Delta.Content != "" {
+				messageContent += choice.Delta.Content
+				// Send the chunk to the handler
+				if err := handler(choice.Delta.Content); err != nil {
+					return false, tokensGenerated, fmt.Errorf("handler error: %w", err)
+				}
+				tokensGenerated++
+			}
+
+			// Check if there's a tool call in the delta
+			if choice.Delta.ToolCalls != nil && len(choice.Delta.ToolCalls) > 0 {
+				toolCallDetected = true
+			}
+
+			// If we get a finish reason, we need to consider if we're done
+			if choice.FinishReason != "" {
+				// If finish reason is "tool_calls", we need to process them
+				if choice.FinishReason == "tool_calls" {
+					toolCallDetected = true
+				}
+			}
+		}
+	}
+
+	return toolCallDetected, tokensGenerated, nil
+}
+
+// processToolCallsNonStreaming handles tool calls by making a non-streaming request
+func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []openaiapi.ChatCompletionMessage) ([]openaiapi.ChatCompletionMessage, int, int, error) {
+	// Create non-streaming request
+	nonStreamReq := a.createChatCompletionRequest(messages, false) // false = not streaming
+
+	// Make the request
+	resp, err := a.client.CreateChatCompletion(ctx, nonStreamReq)
+	if err != nil {
+		return messages, 0, 0, fmt.Errorf("failed to create non-streaming chat completion: %w", err)
+	}
+
+	// Track token usage
+	promptTokens := resp.Usage.PromptTokens
+	completionTokens := resp.Usage.CompletionTokens
+
+	if len(resp.Choices) == 0 {
+		return messages, promptTokens, completionTokens, fmt.Errorf("no completion choices returned")
+	}
+
+	choice := resp.Choices[0]
+
+	// Check if there's a tool call in the response
+	if choice.Message.ToolCalls != nil && len(choice.Message.ToolCalls) > 0 {
+		// Add the assistant's message with the tool calls to our conversation
+		messages = append(messages, choice.Message)
+
+		// Process each tool call
+		toolCallResults := a.processToolCalls(ctx, choice.Message.ToolCalls)
+		messages = append(messages, toolCallResults...)
+	}
+
+	return messages, promptTokens, completionTokens, nil
 }
 
 // GetModel returns the model name being used

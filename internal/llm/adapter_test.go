@@ -25,13 +25,14 @@ func TestNewAdapter(t *testing.T) {
 			apiKey:    "test-key",
 			wantError: false,
 		},
-		{
-			name:      "Claude valid",
-			provider:  "claude",
-			model:     "claude-3-opus-20240229",
-			apiKey:    "test-key",
-			wantError: false,
-		},
+		// Claude support will be added in the future
+		// {
+		//     name:      "Claude valid",
+		//     provider:  "claude",
+		//     model:     "claude-3-opus-20240229",
+		//     apiKey:    "test-key",
+		//     wantError: false,
+		// },
 		{
 			name:      "Unknown provider",
 			provider:  "unknown",
@@ -92,29 +93,30 @@ func TestOpenAIAdapter(t *testing.T) {
 	}
 }
 
-func TestClaudeAdapter(t *testing.T) {
-	// Skip if no API key is available
-	apiKey := os.Getenv("ANTHROPIC_API_KEY")
-	if apiKey == "" {
-		t.Skip("ANTHROPIC_API_KEY not set")
-	}
-
-	// Create adapter using NewAdapter instead of direct factory method
-	adapter, err := NewAdapter("claude", "claude-3-opus-20240229", apiKey, nil)
-	if err != nil {
-		t.Fatalf("failed to create adapter: %v", err)
-	}
-
-	ctx := context.Background()
-	messages := []Message{
-		{Role: "user", Content: "Say hello"},
-	}
-
-	response, err := adapter.Chat(ctx, messages)
-	if err != nil {
-		t.Errorf("Chat failed: %v", err)
-	}
-	if response == "" {
-		t.Error("empty response")
-	}
-}
+// Claude support will be added in the future
+// func TestClaudeAdapter(t *testing.T) {
+//     // Skip if no API key is available
+//     apiKey := os.Getenv("ANTHROPIC_API_KEY")
+//     if apiKey == "" {
+//         t.Skip("ANTHROPIC_API_KEY not set")
+//     }
+//
+//     // Create adapter using NewAdapter instead of direct factory method
+//     adapter, err := NewAdapter("claude", "claude-3-opus-20240229", apiKey, nil)
+//     if err != nil {
+//         t.Fatalf("failed to create adapter: %v", err)
+//     }
+//
+//     ctx := context.Background()
+//     messages := []Message{
+//         {Role: "user", Content: "Say hello"},
+//     }
+//
+//     response, err := adapter.Chat(ctx, messages)
+//     if err != nil {
+//         t.Errorf("Chat failed: %v", err)
+//     }
+//     if response == "" {
+//         t.Error("empty response")
+//     }
+// }
