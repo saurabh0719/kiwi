@@ -7,7 +7,8 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 [![GitHub license](https://img.shields.io/github/license/saurabh0719/kiwi)](https://github.com/saurabh0719/kiwi/blob/main/LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://github.com/saurabh0719/kiwi)
 
-![Image](https://github.com/user-attachments/assets/62da0248-2c53-471e-80fe-43017fb87bc0)
+
+![Image](https://github.com/user-attachments/assets/682a1f30-62b1-471f-9dd7-348c661dc4ed)
 
 <span id="installation"></span>
 ## 📦 Installation
@@ -120,7 +121,7 @@ $ kiwi e "What is version control?"
 $ kiwi execute "What is version control?"
 ```
 
-![Image](https://github.com/user-attachments/assets/2f157711-0aee-4e7e-bdad-0130ffcb3704)
+![Image](https://github.com/user-attachments/assets/85527dba-6e84-41f5-9e3f-e98b72814a00)
 
 
 <span id="interactive-chat"></span>
@@ -164,12 +165,14 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 
 In the interactive chat mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
 
-![Image](https://github.com/user-attachments/assets/48ed57b7-0be9-4468-8a9a-4e64dcd97445)
+![Image](https://github.com/user-attachments/assets/c7e32bd8-22b6-4141-814f-554c0d3db87b)
 
 <span id="tool-calls"></span>
 ### 🛠️ Tool Calls
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
+
+![Image](https://github.com/user-attachments/assets/6d5ea17c-b49a-4dc9-8c6f-344950323853)
 
 ```bash
 ...
