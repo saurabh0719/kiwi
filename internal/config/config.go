@@ -21,13 +21,20 @@ type LLMConfig struct {
 
 // UIConfig represents UI and display settings
 type UIConfig struct {
-	Debug bool `mapstructure:"debug"`
+	Debug     bool `mapstructure:"debug"`
+	Streaming bool `mapstructure:"streaming"`
+}
+
+// ToolsConfig represents configuration for various tools
+type ToolsConfig struct {
+	SerperAPIKey string `mapstructure:"serper_api_key"`
 }
 
 // Config represents the overall application configuration
 type Config struct {
-	LLM LLMConfig `mapstructure:"llm"`
-	UI  UIConfig  `mapstructure:"ui"`
+	LLM   LLMConfig   `mapstructure:"llm"`
+	UI    UIConfig    `mapstructure:"ui"`
+	Tools ToolsConfig `mapstructure:"tools"`
 }
 
 func getConfigDir() (string, error) {
@@ -61,6 +68,10 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 
 	// Set UI defaults
 	v.SetDefault("ui.debug", false)
+	v.SetDefault("ui.streaming", true)
+
+	// Set Tools defaults
+	v.SetDefault("tools.serper_api_key", "")
 
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -79,6 +90,11 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	// Map environment variables for tools
+	if serperKey := os.Getenv("SERPER_API_KEY"); serperKey != "" {
+		v.Set("tools.serper_api_key", serperKey)
+	}
+
 	// Read from flags
 	if err := v.BindPFlag("llm.provider", rootCmd.Flags().Lookup("provider")); err != nil {
 		return nil, fmt.Errorf("failed to bind provider flag: %w", err)
@@ -94,6 +110,9 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	}
 	if err := v.BindPFlag("ui.debug", rootCmd.Flags().Lookup("debug")); err != nil {
 		return nil, fmt.Errorf("failed to bind debug flag: %w", err)
+	}
+	if err := v.BindPFlag("ui.streaming", rootCmd.Flags().Lookup("streaming")); err != nil {
+		return nil, fmt.Errorf("failed to bind streaming flag: %w", err)
 	}
 
 	var config Config
@@ -126,8 +145,19 @@ func (c *Config) Save() error {
 
 	// Set UI values
 	v.Set("ui.debug", c.UI.Debug)
+	v.Set("ui.streaming", c.UI.Streaming)
+
+	// Set Tools values
+	v.Set("tools.serper_api_key", c.Tools.SerperAPIKey)
 
 	// Write to file
 	configPath := filepath.Join(configDir, "config.yaml")
 	return v.WriteConfigAs(configPath)
+}
+
+// GetToolsConfig returns a map of tool configuration values
+func (c *Config) GetToolsConfig() map[string]string {
+	return map[string]string{
+		"SERPER_API_KEY": c.Tools.SerperAPIKey,
+	}
 }

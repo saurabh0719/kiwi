@@ -6,11 +6,12 @@ import (
 
 var (
 	// LLM configuration flags
-	provider string
-	model    string
-	apiKey   string
-	safeMode bool
-	debug    bool // Debug mode flag
+	provider  string
+	model     string
+	apiKey    string
+	safeMode  bool
+	debug     bool // Debug mode flag
+	streaming bool // Streaming mode flag
 
 	// Command declarations
 	chatCmd    *cobra.Command
@@ -88,11 +89,12 @@ Configuration:
 
 func init() {
 	// LLM configuration flags
-	rootCmd.PersistentFlags().StringVar(&provider, "provider", "openai", "LLM provider (openai, claude)")
+	rootCmd.PersistentFlags().StringVar(&provider, "provider", "openai", "LLM provider (currently only openai)")
 	rootCmd.PersistentFlags().StringVar(&model, "model", "gpt-3.5-turbo", "LLM model to use")
 	rootCmd.PersistentFlags().StringVar(&apiKey, "api-key", "", "API key for the LLM provider")
 	rootCmd.PersistentFlags().BoolVar(&safeMode, "safe-mode", true, "Enable safe mode with command confirmation")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode with verbose output and statistics")
+	rootCmd.PersistentFlags().BoolVar(&streaming, "streaming", true, "Enable streaming mode for incremental response display")
 
 	// Shorthand command flags
 	rootCmd.Flags().StringVarP(&executeFlag, "execute", "e", "", "Execute a prompt (shorthand)")

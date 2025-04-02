@@ -7,6 +7,7 @@ import (
 
 	"github.com/saurabh0719/kiwi/internal/config"
 	"github.com/saurabh0719/kiwi/internal/llm"
+	"github.com/saurabh0719/kiwi/internal/llm/core"
 	"github.com/saurabh0719/kiwi/internal/tools"
 	"github.com/saurabh0719/kiwi/internal/util"
 	"github.com/spf13/cobra"
@@ -63,23 +64,68 @@ Remember that users in execute mode typically want quick, actionable information
 		},
 	}
 
+	// Initialize a complete response string to store the entire response
+	completeResponse := ""
+
 	// Start the loading spinner
 	spinner := util.NewSpinner("Generating response...")
 	spinner.Start()
 
-	startTime := time.Now()
-	response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
-	elapsedTime := time.Since(startTime)
+	// Print the divider before the response begins
+	util.OutputColor.Println("----------------------------------------------------------------\n")
 
-	spinner.Stop()
+	// Track time for metrics
+	startTime := time.Now()
+	var metrics *core.ResponseMetrics
+
+	if cfg.UI.Streaming {
+		// Stream the response
+		metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
+			// Stop the spinner on first token
+			if spinner != nil {
+				spinner.Stop()
+				spinner = nil
+			}
+			// Print the chunk without a newline
+			fmt.Print(chunk)
+			// Append the chunk to the complete response
+			completeResponse += chunk
+			return nil
+		})
+	} else {
+		// Get the complete response at once
+		var response string
+		response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
+
+		// Stop the spinner when response is received
+		if spinner != nil {
+			spinner.Stop()
+			spinner = nil
+		}
+
+		// Print the complete response
+		fmt.Println(response)
+		completeResponse = response
+	}
+
+	// If the spinner is still running (no tokens received), stop it
+	if spinner != nil {
+		spinner.Stop()
+	}
+
+	// Print the divider after the response
+	util.OutputColor.Println("\n\n----------------------------------------------------------------")
 
 	if err != nil {
 		return fmt.Errorf("failed to get response: %w", err)
 	}
 
-	util.OutputColor.Println("----------------------------------------------------------------\n")
-	fmt.Println(response)
-	util.OutputColor.Println("\n----------------------------------------------------------------")
+	// If metrics is nil (can happen if the stream fails), create empty metrics
+	if metrics == nil {
+		metrics = &core.ResponseMetrics{
+			ResponseTime: time.Since(startTime),
+		}
+	}
 
 	if cfg.UI.Debug {
 		util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
@@ -87,7 +133,7 @@ Remember that users in execute mode typically want quick, actionable information
 			metrics.PromptTokens,
 			metrics.CompletionTokens,
 			metrics.TotalTokens,
-			elapsedTime.Seconds())
+			metrics.ResponseTime.Seconds())
 	}
 
 	return nil

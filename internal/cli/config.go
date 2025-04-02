@@ -34,7 +34,8 @@ Examples:
   kiwi config set llm.model gpt-4
   kiwi config set llm.api_key your_api_key
   kiwi config set llm.safe_mode true
-  kiwi config set ui.debug true`,
+  kiwi config set ui.debug true
+  kiwi config set ui.streaming true`,
 		// Run list command by default when no subcommand is specified
 		RunE: handleConfigList,
 	}
@@ -101,6 +102,7 @@ func handleConfigList(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("  ui.debug: %t\n", cfg.UI.Debug)
+	fmt.Printf("  ui.streaming: %t\n", cfg.UI.Streaming)
 
 	return nil
 }
@@ -128,6 +130,8 @@ func handleConfigGet(cmd *cobra.Command, args []string) error {
 		fmt.Println(cfg.LLM.SafeMode)
 	case "ui.debug":
 		fmt.Println(cfg.UI.Debug)
+	case "ui.streaming":
+		fmt.Println(cfg.UI.Streaming)
 	default:
 		// Check if it's an option
 		if strings.HasPrefix(key, "llm.options.") {
@@ -156,8 +160,8 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 
 	switch key {
 	case "llm.provider":
-		if value != "openai" && value != "claude" {
-			return fmt.Errorf("provider must be 'openai' or 'claude'")
+		if value != "openai" {
+			return fmt.Errorf("provider must be 'openai' (Claude support will be added in the future)")
 		}
 		cfg.LLM.Provider = value
 	case "llm.model":
@@ -179,6 +183,14 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 			cfg.UI.Debug = false
 		} else {
 			return fmt.Errorf("debug must be 'true' or 'false'")
+		}
+	case "ui.streaming":
+		if value == "true" {
+			cfg.UI.Streaming = true
+		} else if value == "false" {
+			cfg.UI.Streaming = false
+		} else {
+			return fmt.Errorf("streaming must be 'true' or 'false'")
 		}
 	default:
 		// Check if it's an option

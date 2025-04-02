@@ -9,6 +9,7 @@ import (
 	"github.com/saurabh0719/kiwi/internal/config"
 	"github.com/saurabh0719/kiwi/internal/input"
 	"github.com/saurabh0719/kiwi/internal/llm"
+	"github.com/saurabh0719/kiwi/internal/llm/core"
 	"github.com/saurabh0719/kiwi/internal/session"
 	"github.com/saurabh0719/kiwi/internal/tools"
 	"github.com/saurabh0719/kiwi/internal/util"
@@ -44,7 +45,8 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 	}
 
 	toolRegistry := tools.NewRegistry()
-	tools.RegisterStandardTools(toolRegistry)
+	// Register all tools including the websearch tool if API key is available
+	tools.RegisterAllTools(toolRegistry, cfg.GetToolsConfig())
 
 	adapter, err := llm.NewAdapter(cfg.LLM.Provider, cfg.LLM.Model, cfg.LLM.APIKey, toolRegistry)
 	if err != nil {
@@ -115,19 +117,78 @@ Remember this is an ongoing conversation where context builds over time.`,
 			})
 		}
 
-		spinner := util.NewSpinner("Thinking...")
-		spinner.Start()
-		response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
-		spinner.Stop()
+		// Initialize a complete response string to store the entire response
+		completeResponse := ""
 
-		if err != nil {
-			return fmt.Errorf("failed to get response: %w", err)
+		// Define a stream handler for handling the streaming response
+		streamHandler := func(chunk string) error {
+			// Print the chunk without a newline
+			fmt.Print(chunk)
+			// Append the chunk to the complete response
+			completeResponse += chunk
+			return nil
 		}
 
-		// assistant response
+		// Start a spinner that will stop once we get the first token
+		spinner := util.NewSpinner("Thinking...")
+		spinner.Start()
+
+		// Print the assistant prompt
 		fmt.Println()
-		util.AssistantColor.Print("Kiwi: ")
-		fmt.Println(response)
+
+		// Track time for metrics
+		startTime := time.Now()
+		var metrics *core.ResponseMetrics
+
+		if cfg.UI.Streaming {
+			// Use streaming API with the handler
+			metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
+				// Stop the spinner on first token
+				if spinner != nil {
+					spinner.Stop()
+					spinner = nil
+					// Print the Kiwi prefix after stopping the spinner
+					util.AssistantColor.Print("Kiwi: ")
+				}
+				return streamHandler(chunk)
+			})
+		} else {
+			// Use non-streaming API for complete response at once
+			var response string
+			response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
+
+			// Stop the spinner when response is received
+			if spinner != nil {
+				spinner.Stop()
+				spinner = nil
+			}
+
+			// Print the Kiwi prefix after stopping the spinner
+			util.AssistantColor.Print("Kiwi: ")
+
+			// Print the complete response
+			fmt.Print(response)
+			completeResponse = response
+		}
+
+		// If the spinner is still running (no tokens received), stop it
+		if spinner != nil {
+			spinner.Stop()
+		}
+
+		// Print a newline after the response
+		fmt.Println()
+
+		if err != nil {
+			return fmt.Errorf("failed to get streaming response: %w", err)
+		}
+
+		// If metrics is nil (can happen if the stream fails), create empty metrics
+		if metrics == nil {
+			metrics = &core.ResponseMetrics{
+				ResponseTime: time.Since(startTime),
+			}
+		}
 
 		if cfg.UI.Debug {
 			util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
@@ -139,7 +200,7 @@ Remember this is an ongoing conversation where context builds over time.`,
 			util.DividerColor.Println("----------------------------------------")
 		}
 
-		if err := sessionMgr.AddMessage(sess.ID, "assistant", response); err != nil {
+		if err := sessionMgr.AddMessage(sess.ID, "assistant", completeResponse); err != nil {
 			return fmt.Errorf("failed to add assistant message: %w", err)
 		}
 	}
