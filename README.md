@@ -99,8 +99,10 @@ Docker is widely used for developing, shipping, and running applications in a co
 
 ----------------------------------------------------------------
 
-[gpt-4o] Tokens: 716 prompt + 173 completion = 889 total | Time: 2.92s
+[gpt-4o] Tokens: 716 prompt + 173 completion = 889 total | Time: 2.92s (LLM: 2.82s, Tools: 0.00s, Other: 0.10s)
 ```
+
+This example shows the timing breakdown in execute mode, demonstrating that for simple queries without tool calls, almost all the time is spent in LLM processing.
 
 You can also use shorthand commands:
 
@@ -147,8 +149,10 @@ Kiwi: HTML, or Hypertext Markup Language, is the standard language used to creat
 
 HTML is a cornerstone technology of the World Wide Web, working alongside CSS (Cascading Style Sheets) and JavaScript to create interactive and visually appealing web pages.
 
-[gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s
+[gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s (LLM: 5.74s, Tools: 0.00s, Other: 0.08s)
 ```
+
+In the interactive chat mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
 
 ### 🛠️ Tool Calls
 
@@ -183,8 +187,10 @@ This structure suggests a Go-based project with version control and documentatio
 
 ----------------------------------------------------------------
 
-[gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s
+[gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s (LLM: 4.25s, Tools: 0.32s, Other: 0.89s)
 ```
+
+In this example, notice how the time is broken down between LLM processing (4.25s), tool execution (0.32s for filesystem:list), and other overhead (0.89s), giving you insights into where the processing time is being spent.
 
 ### 🔧 Shell Command Assistance
 
@@ -219,7 +225,7 @@ The tool will suggest a command and ask for confirmation before executing it.
 
 ### 🐞 Debug Mode
 
-Enable debug mode to see token usage and response time:
+Enable debug mode to see token usage and detailed timing metrics:
 
 ```bash
 # Using command-line flag
@@ -245,8 +251,19 @@ Key benefits:
 
 ----------------------------------------------------------------
 
-[gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
+[gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s (LLM: 3.42s, Tools: 0.00s, Other: 0.50s)
 ```
+
+#### Understanding Timing Metrics
+
+When debug mode is enabled, Kiwi provides a detailed breakdown of execution time:
+
+- **Total Time**: The overall time taken from sending the request to receiving the complete response
+- **LLM Time**: Time spent in the language model processing your request and generating a response
+- **Tools Time**: Time spent executing tools (file operations, web searches, etc.)
+- **Other Time**: Overhead time spent on networking, parsing, and other internal operations
+
+These metrics can help you understand where time is being spent during request processing, which can be valuable for diagnosing performance issues or optimizing your workflows.
 
 ### 📺 Streaming Mode
 

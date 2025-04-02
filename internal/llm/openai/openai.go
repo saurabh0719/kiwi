@@ -96,6 +96,12 @@ func (a *Adapter) prepareTools() []openaiapi.Tool {
 // ChatWithMetrics sends a message to OpenAI and returns the response with metrics
 func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) (string, *core.ResponseMetrics, error) {
 	startTime := time.Now()
+	var llmTime time.Duration
+	var toolTime time.Duration
+
+	// Ensure any existing spinner is stopped at the beginning
+	spinnerManager := util.GetGlobalSpinnerManager()
+	spinnerManager.TransitionToResponse()
 
 	// Prepare the initial messages and request
 	openaiMessages := a.prepareInitialMessages(messages)
@@ -112,12 +118,23 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 	for callCount < maxCalls {
 		callCount++
 
+		// Start spinner for waiting for response
+		if callCount == 1 { // Only for the first call
+			spinnerManager.StartThinkingSpinner("Waiting for response...")
+		}
+
+		llmStartTime := time.Now()
 		resp, err := a.client.CreateChatCompletion(ctx, req)
+		llmTime += time.Since(llmStartTime)
 		if err != nil {
+			// Stop spinner on error
+			spinnerManager.TransitionToResponse()
 			return "", nil, fmt.Errorf("failed to create chat completion: %w", err)
 		}
 
 		if len(resp.Choices) == 0 {
+			// Stop spinner when no choices are returned
+			spinnerManager.TransitionToResponse()
 			return "", nil, fmt.Errorf("no completion choices returned")
 		}
 
@@ -133,18 +150,28 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 			openaiMessages = append(openaiMessages, choice.Message)
 
 			// Process each tool call and add results to messages
+			// (Tools manage their own spinners)
+			toolStartTime := time.Now()
 			toolCallResults := a.processToolCalls(ctx, choice.Message.ToolCalls)
+			toolTime += time.Since(toolStartTime)
 			openaiMessages = append(openaiMessages, toolCallResults...)
 
 			// Update the request with the new messages
 			req.Messages = openaiMessages
+
+			// Start spinner for next iteration
+			spinnerManager.StartThinkingSpinner("Continuing conversation...")
 			continue
 		}
 
 		// No tool call, so we have our final response
+		spinnerManager.TransitionToResponse() // Stop spinner before returning response
 		finalResponse = choice.Message.Content
 		break
 	}
+
+	// Ensure all spinners are stopped
+	spinnerManager.StopAllSpinners()
 
 	responseTime := time.Since(startTime)
 	metrics := &core.ResponseMetrics{
@@ -152,6 +179,8 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 		CompletionTokens: totalCompletionTokens,
 		TotalTokens:      totalPromptTokens + totalCompletionTokens,
 		ResponseTime:     responseTime,
+		LLMTime:          llmTime,
+		ToolTime:         toolTime,
 	}
 
 	return finalResponse, metrics, nil
@@ -240,15 +269,22 @@ func (a *Adapter) processToolCalls(ctx context.Context, toolCalls []openaiapi.To
 
 // executeToolCall executes a single tool call and returns the result
 func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArgs, toolCallID string) string {
+	// Get the global spinner manager
+	spinnerManager := util.GetGlobalSpinnerManager()
+
 	// Get the tool to execute
 	tool, exists := a.tools.Get(functionName)
 	if !exists {
+		// Stop any spinner if no tool is found
+		spinnerManager.TransitionToResponse()
 		return fmt.Sprintf("Error: Function %s not found", functionName)
 	}
 
 	// Parse the arguments
 	var args map[string]interface{}
 	if err := json.Unmarshal([]byte(functionArgs), &args); err != nil {
+		// Stop any spinner on error
+		spinnerManager.TransitionToResponse()
 		return fmt.Sprintf("Error parsing arguments: %v", err)
 	}
 
@@ -256,16 +292,23 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 	if functionName == "filesystem" {
 		missingParams := a.checkFilesystemParams(args)
 		if len(missingParams) > 0 {
+			// Stop any spinner if parameters are missing
+			spinnerManager.TransitionToResponse()
 			return fmt.Sprintf("Error: Missing required parameters for function %s: %v. Please provide all required parameters.",
 				functionName, missingParams)
 		}
 	}
 
 	// Execute the tool with visual feedback
+	// The ExecuteToolWithFeedback method itself manages its own spinner via the spinnerManager
 	result, err := util.ExecuteToolWithFeedback(ctx, tool, args)
 	if err != nil {
+		// Error handling is done in ExecuteToolWithFeedback
 		return fmt.Sprintf("Error executing function: %v", err)
 	}
+
+	// After tool execution, we need a new spinner for continuing the conversation
+	spinnerManager.StartThinkingSpinner("Continuing conversation...")
 
 	return result
 }
@@ -290,6 +333,12 @@ func (a *Adapter) checkFilesystemParams(args map[string]interface{}) []string {
 // ChatStream sends a message to OpenAI and streams the response tokens to the handler function
 func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handler core.StreamHandler) (*core.ResponseMetrics, error) {
 	startTime := time.Now()
+	var llmTime time.Duration
+	var toolTime time.Duration
+
+	// Ensure any existing spinner is stopped at the beginning of a new chat stream
+	spinnerManager := util.GetGlobalSpinnerManager()
+	spinnerManager.TransitionToResponse()
 
 	// Prepare initial messages and variables for tracking
 	openaiMessages := a.prepareInitialMessages(messages)
@@ -305,8 +354,12 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		callCount++
 
 		// Process stream and check for tool calls
+		llmStartTime := time.Now()
 		toolCallDetected, streamTokens, err := a.processStream(ctx, openaiMessages, handler)
+		llmTime += time.Since(llmStartTime)
 		if err != nil {
+			// Ensure any spinner is stopped on error
+			spinnerManager.TransitionToResponse()
 			return nil, err
 		}
 
@@ -318,8 +371,12 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		}
 
 		// Process tool calls through non-streaming API
+		toolStartTime := time.Now()
 		updatedMessages, promptTokens, completionTokens, err := a.processToolCallsNonStreaming(ctx, openaiMessages)
+		toolTime += time.Since(toolStartTime)
 		if err != nil {
+			// Ensure any spinner is stopped on error
+			spinnerManager.TransitionToResponse()
 			return nil, err
 		}
 
@@ -327,6 +384,9 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		totalPromptTokens += promptTokens
 		totalCompletionTokens += completionTokens
 	}
+
+	// Ensure all spinners are stopped at the end of the conversation
+	spinnerManager.StopAllSpinners()
 
 	responseTime := time.Since(startTime)
 
@@ -336,6 +396,8 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 		CompletionTokens: totalCompletionTokens + totalTokensGenerated,
 		TotalTokens:      totalPromptTokens + totalCompletionTokens + totalTokensGenerated,
 		ResponseTime:     responseTime,
+		LLMTime:          llmTime,
+		ToolTime:         toolTime,
 	}
 
 	return metrics, nil
@@ -343,6 +405,9 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 
 // processStream handles the streaming part of the response and detects tool calls
 func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCompletionMessage, handler core.StreamHandler) (bool, int, error) {
+	// Get the global spinner manager
+	spinnerManager := util.GetGlobalSpinnerManager()
+
 	// Create streaming request
 	req := a.createChatCompletionRequest(messages, true) // true = streaming
 
@@ -356,6 +421,7 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 	toolCallDetected := false
 	var messageContent string
 	tokensGenerated := 0
+	firstToken := true
 
 	// Process the stream
 	for {
@@ -377,6 +443,14 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 			// Collect content from the stream
 			if choice.Delta.Content != "" {
 				messageContent += choice.Delta.Content
+
+				// On first token, ensure any tool execution spinner is stopped
+				if firstToken {
+					firstToken = false
+					// Explicitly stop any running spinner to ensure clean transition
+					spinnerManager.TransitionToResponse()
+				}
+
 				// Send the chunk to the handler
 				if err := handler(choice.Delta.Content); err != nil {
 					return false, tokensGenerated, fmt.Errorf("handler error: %w", err)
@@ -394,6 +468,8 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 				// If finish reason is "tool_calls", we need to process them
 				if choice.FinishReason == "tool_calls" {
 					toolCallDetected = true
+					// Start a transition spinner before executing tool calls
+					spinnerManager.StartThinkingSpinner("Preparing to execute tools...")
 				}
 			}
 		}
@@ -404,12 +480,20 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 
 // processToolCallsNonStreaming handles tool calls by making a non-streaming request
 func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []openaiapi.ChatCompletionMessage) ([]openaiapi.ChatCompletionMessage, int, int, error) {
+	// Get the global spinner manager
+	spinnerManager := util.GetGlobalSpinnerManager()
+
+	// Start a spinner indicating we're processing tool calls
+	spinnerManager.StartThinkingSpinner("Processing tool calls...")
+
 	// Create non-streaming request
 	nonStreamReq := a.createChatCompletionRequest(messages, false) // false = not streaming
 
 	// Make the request
 	resp, err := a.client.CreateChatCompletion(ctx, nonStreamReq)
 	if err != nil {
+		// Stop spinner on error
+		spinnerManager.TransitionToResponse()
 		return messages, 0, 0, fmt.Errorf("failed to create non-streaming chat completion: %w", err)
 	}
 
@@ -418,6 +502,8 @@ func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []o
 	completionTokens := resp.Usage.CompletionTokens
 
 	if len(resp.Choices) == 0 {
+		// Stop spinner when no choices are available
+		spinnerManager.TransitionToResponse()
 		return messages, promptTokens, completionTokens, fmt.Errorf("no completion choices returned")
 	}
 
@@ -428,9 +514,12 @@ func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []o
 		// Add the assistant's message with the tool calls to our conversation
 		messages = append(messages, choice.Message)
 
-		// Process each tool call
+		// Process each tool call - spinner management is done in the executeToolCall method
 		toolCallResults := a.processToolCalls(ctx, choice.Message.ToolCalls)
 		messages = append(messages, toolCallResults...)
+	} else {
+		// If no tool calls, stop the spinner
+		spinnerManager.TransitionToResponse()
 	}
 
 	return messages, promptTokens, completionTokens, nil

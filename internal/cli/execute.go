@@ -67,9 +67,11 @@ Remember that users in execute mode typically want quick, actionable information
 	// Initialize a complete response string to store the entire response
 	completeResponse := ""
 
-	// Start the loading spinner
-	spinner := util.NewSpinner("Generating response...")
-	spinner.Start()
+	// Get the global spinner manager
+	spinnerManager := util.GetGlobalSpinnerManager()
+
+	// Start the thinking spinner
+	spinnerManager.StartThinkingSpinner("Generating response...")
 
 	// Print the divider before the response begins
 	util.OutputColor.Println("----------------------------------------------------------------\n")
@@ -81,11 +83,12 @@ Remember that users in execute mode typically want quick, actionable information
 	if cfg.UI.Streaming {
 		// Stream the response
 		metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
-			// Stop the spinner on first token
-			if spinner != nil {
-				spinner.Stop()
-				spinner = nil
+			// On first chunk, make sure no spinner is active
+			if completeResponse == "" {
+				// Clear spinner before printing any output
+				util.PrepareForResponse(spinnerManager)
 			}
+
 			// Print the chunk without a newline
 			fmt.Print(chunk)
 			// Append the chunk to the complete response
@@ -97,23 +100,16 @@ Remember that users in execute mode typically want quick, actionable information
 		var response string
 		response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
 
-		// Stop the spinner when response is received
-		if spinner != nil {
-			spinner.Stop()
-			spinner = nil
-		}
+		// Clear spinner before printing any output
+		util.PrepareForResponse(spinnerManager)
 
 		// Print the complete response
 		fmt.Println(response)
 		completeResponse = response
 	}
 
-	// If the spinner is still running (no tokens received), stop it
-	if spinner != nil {
-		spinner.Stop()
-	}
-
-	// Print the divider after the response
+	// No need to stop spinners again, as it's already done before printing the output
+	// Just print the divider after the response
 	util.OutputColor.Println("\n\n----------------------------------------------------------------")
 
 	if err != nil {
@@ -128,12 +124,7 @@ Remember that users in execute mode typically want quick, actionable information
 	}
 
 	if cfg.UI.Debug {
-		util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
-			adapter.GetModel(),
-			metrics.PromptTokens,
-			metrics.CompletionTokens,
-			metrics.TotalTokens,
-			metrics.ResponseTime.Seconds())
+		util.PrintDebugMetrics(metrics, adapter.GetModel())
 	}
 
 	return nil

@@ -111,17 +111,8 @@ func RegisterStandardTools(registry *Registry) {
 	registry.Register(NewFileSystemTool())
 	registry.Register(NewShellTool())
 	registry.Register(NewSystemInfoTool())
-}
-
-// RegisterAllTools initializes and registers all available tools including optional ones
-func RegisterAllTools(registry *Registry, config map[string]string) {
-	// Register standard tools
-	RegisterStandardTools(registry)
-
-	// Register web search tool if API key is provided
-	if apiKey, ok := config["SERPER_API_KEY"]; ok && apiKey != "" {
-		registry.Register(NewWebSearchTool(apiKey))
-	}
+	// Register web search tool by default (no API key required)
+	registry.Register(NewWebSearchTool())
 }
 
 // NewFileSystemTool creates a new FileSystemTool
@@ -143,7 +134,7 @@ func NewSystemInfoTool() core.Tool {
 }
 
 // NewWebSearchTool creates a new WebSearchTool
-func NewWebSearchTool(apiKey string) core.Tool {
+func NewWebSearchTool() core.Tool {
 	// Direct implementation that returns ToolExecutionResult
-	return websearch.New(apiKey)
+	return websearch.New()
 }

@@ -19,6 +19,8 @@ type ResponseMetrics struct {
 	CompletionTokens int
 	TotalTokens      int
 	ResponseTime     time.Duration
+	LLMTime          time.Duration // Time spent in LLM processing
+	ToolTime         time.Duration // Time spent in tool execution
 }
 
 // StreamHandler is a callback function that processes a token chunk from the streaming response

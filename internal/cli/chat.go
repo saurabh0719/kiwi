@@ -45,8 +45,7 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 	}
 
 	toolRegistry := tools.NewRegistry()
-	// Register all tools including the websearch tool if API key is available
-	tools.RegisterAllTools(toolRegistry, cfg.GetToolsConfig())
+	tools.RegisterStandardTools(toolRegistry)
 
 	adapter, err := llm.NewAdapter(cfg.LLM.Provider, cfg.LLM.Model, cfg.LLM.APIKey, toolRegistry)
 	if err != nil {
@@ -130,8 +129,9 @@ Remember this is an ongoing conversation where context builds over time.`,
 		}
 
 		// Start a spinner that will stop once we get the first token
-		spinner := util.NewSpinner("Thinking...")
-		spinner.Start()
+		// Using the global spinner manager
+		spinnerManager := util.GetGlobalSpinnerManager()
+		spinnerManager.StartThinkingSpinner("Thinking...")
 
 		// Print the assistant prompt
 		fmt.Println()
@@ -143,13 +143,14 @@ Remember this is an ongoing conversation where context builds over time.`,
 		if cfg.UI.Streaming {
 			// Use streaming API with the handler
 			metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
-				// Stop the spinner on first token
-				if spinner != nil {
-					spinner.Stop()
-					spinner = nil
-					// Print the Kiwi prefix after stopping the spinner
-					util.AssistantColor.Print("Kiwi: ")
+				// On first chunk, make sure no spinner is active
+				if completeResponse == "" {
+					// Clear spinner before printing any output
+					util.PrepareForResponse(spinnerManager)
+					// Print the Kiwi prefix
+					util.AssistantColor.Print("\nKiwi: ")
 				}
+
 				return streamHandler(chunk)
 			})
 		} else {
@@ -157,26 +158,19 @@ Remember this is an ongoing conversation where context builds over time.`,
 			var response string
 			response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
 
-			// Stop the spinner when response is received
-			if spinner != nil {
-				spinner.Stop()
-				spinner = nil
-			}
-
-			// Print the Kiwi prefix after stopping the spinner
-			util.AssistantColor.Print("Kiwi: ")
+			// Clear spinner before printing any output
+			util.PrepareForResponse(spinnerManager)
+			// Print the Kiwi prefix
+			util.AssistantColor.Print("\nKiwi: ")
 
 			// Print the complete response
 			fmt.Print(response)
 			completeResponse = response
 		}
 
-		// If the spinner is still running (no tokens received), stop it
-		if spinner != nil {
-			spinner.Stop()
-		}
-
-		// Print a newline after the response
+		// At the end of the function, after processing the response
+		// No need to stop spinners or clear line again, as it's already done before printing the response
+		// Just print a newline after the response
 		fmt.Println()
 
 		if err != nil {
@@ -191,12 +185,7 @@ Remember this is an ongoing conversation where context builds over time.`,
 		}
 
 		if cfg.UI.Debug {
-			util.StatsColor.Printf("\n[%s] Tokens: %d prompt + %d completion = %d total | Time: %.2fs\n",
-				adapter.GetModel(),
-				metrics.PromptTokens,
-				metrics.CompletionTokens,
-				metrics.TotalTokens,
-				metrics.ResponseTime.Seconds())
+			util.PrintDebugMetrics(metrics, adapter.GetModel())
 			util.DividerColor.Println("----------------------------------------")
 		}
 
