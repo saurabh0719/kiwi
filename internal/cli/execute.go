@@ -74,7 +74,7 @@ Remember that users in execute mode typically want quick, actionable information
 	spinnerManager.StartThinkingSpinner("Generating response...")
 
 	// Print the divider before the response begins
-	util.OutputColor.Println("----------------------------------------------------------------\n")
+	util.PrintStartDivider()
 
 	// Track time for metrics
 	startTime := time.Now()
@@ -110,7 +110,8 @@ Remember that users in execute mode typically want quick, actionable information
 
 	// No need to stop spinners again, as it's already done before printing the output
 	// Just print the divider after the response
-	util.OutputColor.Println("\n\n----------------------------------------------------------------")
+	fmt.Println()
+	util.OutputColor.Println("----------------------------------------------------------------")
 
 	if err != nil {
 		return fmt.Errorf("failed to get response: %w", err)
