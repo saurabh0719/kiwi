@@ -54,44 +54,66 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 	return t.parameters
 }
 
-// Execute executes the tool with the given arguments
+// Execute runs the filesystem operation
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
-	operation, ok := args["operation"].(string)
+	result := core.ToolExecutionResult{
+		ToolMethod: "",
+		Output:     "",
+	}
+
+	// Check if operation is a valid string
+	operationVal, ok := args["operation"]
+	if !ok || operationVal == nil {
+		return result, fmt.Errorf("operation parameter is required")
+	}
+
+	operation, ok := operationVal.(string)
 	if !ok {
-		return core.ToolExecutionResult{}, fmt.Errorf("operation must be a string")
+		return result, fmt.Errorf("operation must be a string")
 	}
 
-	path, ok := args["path"].(string)
+	result.ToolMethod = operation
+
+	// Check if path is a valid string
+	pathVal, ok := args["path"]
+	if !ok || pathVal == nil {
+		return result, fmt.Errorf("path parameter is required")
+	}
+
+	path, ok := pathVal.(string)
 	if !ok {
-		return core.ToolExecutionResult{}, fmt.Errorf("path must be a string")
+		return result, fmt.Errorf("path must be a string")
 	}
 
-	// Ensure the path is safe
-	cleanPath := filepath.Clean(path)
-	if !isPathSafe(cleanPath) {
-		return core.ToolExecutionResult{}, fmt.Errorf("path is not safe: %s", path)
+	// Validate the path for safety
+	if !isPathSafe(path) {
+		return result, fmt.Errorf("path is not safe: %s", path)
 	}
 
-	var output string
 	var err error
+	var output string
 
+	// Execute the requested operation
 	switch operation {
 	case "list":
-		output, err = t.listFiles(cleanPath)
+		output, err = t.listFiles(path)
 	case "read":
-		output, err = t.readFile(cleanPath)
+		output, err = t.readFile(path)
+	case "write":
+		content, _ := args["content"].(string)
+		output, err = t.writeFile(path, content)
+	case "delete":
+		output, err = t.deleteFile(path)
 	default:
-		return core.ToolExecutionResult{}, fmt.Errorf("unknown operation: %s", operation)
+		err = fmt.Errorf("unknown operation: %s", operation)
 	}
 
 	if err != nil {
-		return core.ToolExecutionResult{}, err
+		return result, err
 	}
 
-	return core.ToolExecutionResult{
-		ToolMethod: operation,
-		Output:     output,
-	}, nil
+	result.Output = output
+	return result, nil
 }
 
 // listFiles lists the files in a directory
@@ -113,20 +135,62 @@ func (t *Tool) listFiles(path string) (string, error) {
 	return result.String(), nil
 }
 
-// readFile reads a file and returns its contents
+// readFile reads the content of a file
 func (t *Tool) readFile(path string) (string, error) {
+	// Validate the path for safety
+	if !isPathSafe(path) {
+		return "", fmt.Errorf("path is not safe: %s", path)
+	}
+
+	// Check if the file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return "", fmt.Errorf("file does not exist: %s", path)
+	}
+
+	// Read the file
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Limit the size of the response
-	const maxSize = 1024 * 1024 // 1MB
-	if len(data) > maxSize {
-		return string(data[:maxSize]) + "\n... (file truncated)", nil
+	return string(data), nil
+}
+
+// writeFile writes content to a file
+func (t *Tool) writeFile(path string, content string) (string, error) {
+	// Validate the path for safety
+	if !isPathSafe(path) {
+		return "", fmt.Errorf("path is not safe: %s", path)
 	}
 
-	return string(data), nil
+	// Write the file
+	err := os.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return fmt.Sprintf("Successfully wrote %d bytes to %s", len(content), path), nil
+}
+
+// deleteFile deletes a file
+func (t *Tool) deleteFile(path string) (string, error) {
+	// Validate the path for safety
+	if !isPathSafe(path) {
+		return "", fmt.Errorf("path is not safe: %s", path)
+	}
+
+	// Check if the file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return "", fmt.Errorf("file does not exist: %s", path)
+	}
+
+	// Delete the file
+	err := os.Remove(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return fmt.Sprintf("Successfully deleted %s", path), nil
 }
 
 // isPathSafe checks if a path is safe to access

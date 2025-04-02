@@ -8,6 +8,7 @@ import (
 	"github.com/saurabh0719/kiwi/internal/tools/filesystem"
 	"github.com/saurabh0719/kiwi/internal/tools/shell"
 	"github.com/saurabh0719/kiwi/internal/tools/sysinfo"
+	"github.com/saurabh0719/kiwi/internal/tools/websearch"
 )
 
 // Parameter represents a parameter for a tool
@@ -112,6 +113,17 @@ func RegisterStandardTools(registry *Registry) {
 	registry.Register(NewSystemInfoTool())
 }
 
+// RegisterAllTools initializes and registers all available tools including optional ones
+func RegisterAllTools(registry *Registry, config map[string]string) {
+	// Register standard tools
+	RegisterStandardTools(registry)
+
+	// Register web search tool if API key is provided
+	if apiKey, ok := config["SERPER_API_KEY"]; ok && apiKey != "" {
+		registry.Register(NewWebSearchTool(apiKey))
+	}
+}
+
 // NewFileSystemTool creates a new FileSystemTool
 func NewFileSystemTool() core.Tool {
 	// Direct implementation that returns ToolExecutionResult
@@ -128,4 +140,10 @@ func NewShellTool() core.Tool {
 func NewSystemInfoTool() core.Tool {
 	// Direct implementation that returns ToolExecutionResult
 	return sysinfo.New()
+}
+
+// NewWebSearchTool creates a new WebSearchTool
+func NewWebSearchTool(apiKey string) core.Tool {
+	// Direct implementation that returns ToolExecutionResult
+	return websearch.New(apiKey)
 }
