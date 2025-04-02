@@ -3,74 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiwi - LLM CLI for your Terminal</title>
+    <title>Kiwi - A CLI tool for LLMs</title>
+    <meta name="description" content="Kiwi is a powerful CLI tool that enables you to interact with Large Language Models directly from your terminal.">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <meta property="og:title" content="Kiwi - LLM CLI for your Terminal">
-    <meta property="og:description" content="Interact with Large Language Models directly from your terminal">
-    <meta property="og:type" content="website">
+    <script src="script.js" defer></script>
 </head>
 <body>
-    <header>
+    <header class="header">
         <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <h1>Kiwi</h1>
-                </div>
-                <nav>
-                    <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#examples">Examples</a></li>
-                        <li><a href="#installation">Installation</a></li>
-                        <li><a href="https://github.com/saurabh0719/kiwi" class="github-link">GitHub <i class="fab fa-github"></i></a></li>
-                    </ul>
-                </nav>
+            <div class="logo">
+                <img src="https://github.com/user-attachments/assets/9e323659-f603-4b8f-8a24-da5f19169c38" alt="Kiwi logo">
+                <h1><span>kiwi</span></h1>
             </div>
+            <nav class="nav">
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#examples">Examples</a></li>
+                    <li><a href="#tools">Tools</a></li>
+                    <li><a href="#installation">Installation</a></li>
+                    <li><a href="https://github.com/saurabh0719/kiwi" class="github-link"><i class="fab fa-github"></i> GitHub</a></li>
+                </ul>
+            </nav>
         </div>
     </header>
 
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>Interact with LLMs, generate commands, answer questions - all within the comfort of your terminal! 🕶️ 🤌</h1>
-                <p class="subtitle">A modern CLI that brings the power of LLMs and built-in tools to your command line</p>
-                <div class="cta-buttons">
-                    <a href="#installation" class="cta-primary">Install Now</a>
-                    <a href="https://github.com/saurabh0719/kiwi" class="cta-secondary">View on GitHub</a>
+                <h1>Interact with LLMs directly from your terminal</h1>
+                <p>Kiwi brings the power of Large Language Models to your command line, making complex tasks as simple as typing a question.</p>
+                <div class="hero-buttons">
+                    <a href="#installation" class="btn primary">Get Started</a>
+                    <a href="https://github.com/saurabh0719/kiwi" class="btn secondary"><i class="fab fa-github"></i> View on GitHub</a>
                 </div>
             </div>
-            <div class="terminal-demo">
+            <div class="hero-terminal">
                 <div class="terminal-header">
-                    <span class="terminal-dots">
-                        <span class="dot red"></span>
-                        <span class="dot yellow"></span>
-                        <span class="dot green"></span>
-                    </span>
-                    <span class="terminal-title">Terminal</span>
+                    <div class="buttons">
+                        <div class="close"></div>
+                        <div class="minimize"></div>
+                        <div class="maximize"></div>
+                    </div>
+                    <div class="title">terminal</div>
                 </div>
                 <div class="terminal-body">
-                    <div class="terminal-line">
-                        <span class="prompt">$</span> kiwi "What is Docker?"
-                    </div>
-                    <div class="terminal-output">----------------------------------------------------------------
-
-Docker is an open-source platform that automates the deployment, scaling, and management of applications using containerization. Containers allow you to package an application with all its dependencies into a standardized unit for software development. This ensures that the application runs consistently across different environments.
-
-Key features of Docker include:
-- **Portability**: Containers can run on any system that supports Docker, making it easy to move applications between environments.
-- **Isolation**: Each container runs in a separate environment, ensuring that applications do not interfere with each other.
-- **Efficiency**: Containers share the host OS kernel, making them lightweight and fast to start compared to virtual machines.
-- **Scalability**: Docker makes it easy to scale applications by deploying multiple containers across different nodes.
-
-Docker is widely used for developing, shipping, and running applications in a consistent and automated manner.
-
-----------------------------------------------------------------
-
-[gpt-4o] Tokens: 716 prompt + 173 completion = 889 total | Time: 2.92s</div>
+                    <div class="line"><span class="prompt">$</span> kiwi what is docker</div>
+                    <div class="line output">Docker is an open-source platform that automates the deployment, scaling, and management of applications using containerization. Containers allow developers to package an application with all its dependencies into a standardized unit for software development.</div>
+                    <div class="line output">Key features:</div>
+                    <div class="line output">- Consistency: Works the same in development and production</div>
+                    <div class="line output">- Isolation: Applications run in their own environment</div>
+                    <div class="line output">- Portability: Run on any system with Docker installed</div>
+                    <div class="line output">- Efficiency: Uses fewer resources than virtual machines</div>
+                    <div class="line"><span class="prompt">$</span> kiwi -t find large log files</div>
+                    <div class="line output">Suggested command:</div>
+                    <div class="line output">find /var/log -type f -size +10M -exec ls -lh {} \;</div>
+                    <div class="line output">Do you want to execute this command? (y/N): y</div>
+                    <div class="line"><span class="prompt">$</span> kiwi -a</div>
+                    <div class="line output">Assistant session started. Type 'exit' to end the session.</div>
+                    <div class="line output">You: How do I use curl to download a file?</div>
+                    <div class="line output">Kiwi: To download a file with curl, use:</div>
+                    <div class="line output">curl -o filename.txt https://example.com/path/to/file</div>
+                    <div class="line output">The -o flag specifies the output filename.</div>
+                    <div class="line"><span class="prompt">$</span> <span class="cursor">|</span></div>
                 </div>
             </div>
         </div>
@@ -84,15 +80,15 @@ Docker is widely used for developing, shipping, and running applications in a co
                     <div class="feature-icon">
                         <i class="fas fa-bolt"></i>
                     </div>
-                    <h3>⚡ Execute Mode</h3>
-                    <p>Run one-off prompts for quick answers without starting a chat session</p>
+                    <h3>⚡ Direct Execution</h3>
+                    <p>Run one-off prompts for quick answers without quotes</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-comments"></i>
                     </div>
-                    <h3>💬 Interactive Chat</h3>
-                    <p>Maintain context in ongoing conversations with persistent sessions</p>
+                    <h3>💬 Interactive Assistant</h3>
+                    <p>Maintain context in ongoing conversations</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
@@ -105,7 +101,7 @@ Docker is widely used for developing, shipping, and running applications in a co
                     <div class="feature-icon">
                         <i class="fas fa-cogs"></i>
                     </div>
-                    <h3>🔧 Shell Command Assistance</h3>
+                    <h3>🔧 Terminal Command Assistance</h3>
                     <p>Get terminal command suggestions with confirmation before execution</p>
                 </div>
             </div>
@@ -119,7 +115,7 @@ Docker is widely used for developing, shipping, and running applications in a co
                 <div class="example-card">
                     <h3>⚡ Execute Mode</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi "Explain Docker in simple terms"
+                        <pre><code>$ kiwi Explain Docker in simple terms
 ----------------------------------------------------------------
 
 Docker is like a shipping container for software. It packages your application and all its dependencies into a standardized unit (a container) that can run anywhere Docker is installed.
@@ -136,12 +132,12 @@ Key benefits:
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>💬 Interactive Chat</h3>
+                    <h3>💬 Interactive Assistant</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi c
+                        <pre><code>$ kiwi -a
 
 Created new session: session_1743543868
-Chat session started. Type 'exit' to end the session.
+Assistant session started. Type 'exit' to end the session.
 Using openai model: gpt-4o
 ----------------------------------------
 
@@ -164,7 +160,7 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
                 <div class="example-card">
                     <h3>🛠️ Built-in Tools</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi "summarise the contents of this directory"
+                        <pre><code>$ kiwi summarise the contents of this directory
 🔧 [Tool: filesystem:list] executed in 0.000s
 ----------------------------------------------------------------
 
@@ -196,9 +192,9 @@ This structure suggests a Go-based project with version control and documentatio
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>🔧 Shell Command Assistance</h3>
+                    <h3>🔧 Terminal Command Assistance</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi s "find all pdf files modified in the last week"
+                        <pre><code>$ kiwi -t find all pdf files modified in the last week
 ----------------------------------------------------------------
 
 Suggested command:
@@ -220,17 +216,22 @@ Do you want to execute this command? (y/n): y
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>🐞 Debug Mode</h3>
+                    <h3>🛠️ Configuration</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi -d "What is the capital of France?"
-----------------------------------------------------------------
+                        <pre><code>$ kiwi -c
+Current configuration:
+  llm.provider: openai
+  llm.model: gpt-4o
+  llm.api_key: sk-***************
+  llm.safe_mode: true
+  ui.debug: false
+  ui.streaming: true
 
-The capital of France is Paris. It's the country's largest city and serves as its political, cultural, and economic center. Paris is known for landmarks like the Eiffel Tower, Louvre Museum, Notre-Dame Cathedral, and Arc de Triomphe.
+$ kiwi -c set llm.model gpt-4o-mini
+Configuration updated successfully.
 
-----------------------------------------------------------------
-
-[gpt-4o] Tokens: 142 prompt + 57 completion = 199 total | Time: 0.86s
-Rate: $0.00025 for prompt + $0.00057 for completion = $0.00082 total</code></pre>
+$ kiwi -c get llm.model
+gpt-4o-mini</code></pre>
                     </div>
                 </div>
             </div>
@@ -249,10 +250,10 @@ Rate: $0.00025 for prompt + $0.00057 for completion = $0.00082 total</code></pre
                     <p>Enables reading, writing, and listing files and directories:</p>
                     <div class="code-block">
                         <pre><code># Read a file
-kiwi "Read the content of my README.md file"
+kiwi Read the content of my README.md file
 
 # List directory contents
-kiwi "What files are in my current directory?"</code></pre>
+kiwi What files are in my current directory?</code></pre>
                     </div>
                 </div>
                 <div class="installation-card">
@@ -260,10 +261,10 @@ kiwi "What files are in my current directory?"</code></pre>
                     <p>Executes shell commands with your confirmation:</p>
                     <div class="code-block">
                         <pre><code># Find resource-intensive processes
-kiwi "List all processes using more than 10% CPU"
+kiwi -t List all processes using more than 10% CPU
 
 # Create an archive
-kiwi "Create a compressed archive of my project"</code></pre>
+kiwi -t Create a compressed archive of my project</code></pre>
                     </div>
                 </div>
                 <div class="installation-card">
@@ -297,8 +298,10 @@ toolRegistry.Register(&MyCustomTool{})</code></pre>
                 </div>
                 <div class="installation-card">
                     <h3>💾 Prebuilt Binaries</h3>
-                    <p>Download binaries for your platform from the GitHub Releases page:</p>
-                    <a href="https://github.com/saurabh0719/kiwi/releases" class="download-link">Download Releases</a>
+                    <p>Download the latest release from GitHub:</p>
+                    <div class="buttons-container">
+                        <a href="https://github.com/saurabh0719/kiwi/releases" class="btn secondary">Download Releases</a>
+                    </div>
                 </div>
                 <div class="installation-card">
                     <h3>🔨 Build from Source</h3>
@@ -313,29 +316,48 @@ sudo mv kiwi /usr/local/bin/</code></pre>
         </div>
     </section>
 
-    <footer>
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to transform your terminal experience?</h2>
+            <p>Get started with Kiwi today and experience the power of LLMs in your command line.</p>
+            <div class="cta-buttons">
+                <a href="#installation" class="btn primary">Install Now</a>
+                <a href="https://github.com/saurabh0719/kiwi" class="btn secondary"><i class="fab fa-github"></i> Star on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-logo">
-                    <h2>Kiwi</h2>
-                    <p>A command-line interface for LLMs</p>
+                    <img src="https://github.com/user-attachments/assets/9e323659-f603-4b8f-8a24-da5f19169c38" alt="Kiwi logo">
+                    <span>kiwi</span>
                 </div>
                 <div class="footer-links">
-                    <h3>Links</h3>
-                    <ul>
-                        <li><a href="https://github.com/saurabh0719/kiwi">GitHub</a></li>
-                        <li><a href="https://github.com/saurabh0719/kiwi#usage">Documentation</a></li>
-                        <li><a href="https://github.com/saurabh0719/kiwi/releases">Releases</a></li>
-                        <li><a href="https://github.com/saurabh0719/kiwi/issues">Issues</a></li>
-                    </ul>
+                    <div class="footer-links-column">
+                        <h3>Navigation</h3>
+                        <ul>
+                            <li><a href="#features">Features</a></li>
+                            <li><a href="#examples">Examples</a></li>
+                            <li><a href="#tools">Tools</a></li>
+                            <li><a href="#installation">Installation</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-links-column">
+                        <h3>Resources</h3>
+                        <ul>
+                            <li><a href="https://github.com/saurabh0719/kiwi">GitHub Repository</a></li>
+                            <li><a href="https://github.com/saurabh0719/kiwi/issues">Report an Issue</a></li>
+                            <li><a href="https://github.com/saurabh0719/kiwi/blob/main/LICENSE">License</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 Kiwi. Licensed under <a href="https://github.com/saurabh0719/kiwi/blob/main/LICENSE">Apache-2.0</a>.</p>
+                <p>© 2023 Kiwi. MIT Licensed. Built with ❤️ for the open-source community.</p>
             </div>
         </div>
     </footer>
-
-    <script src="script.js"></script>
 </body>
 </html> 

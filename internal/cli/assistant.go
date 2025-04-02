@@ -16,18 +16,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func initChatCmd() {
-	chatCmd = &cobra.Command{
-		Use:   "chat",
-		Short: "Start a new chat session",
-		Long:  `Start a new chat session with the LLM. Type 'exit' to end the session.`,
+func initAssistantCmd() {
+	assistantCmd = &cobra.Command{
+		Use:   "assistant",
+		Short: "Start a new assistant session",
+		Long:  `Start a new assistant session with the LLM. Type 'exit' to end the session.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return startNewChat(cmd, args)
+			return startAssistant(cmd, args)
 		},
 	}
 }
 
-func startNewChat(cmd *cobra.Command, args []string) error {
+func startAssistant(cmd *cobra.Command, args []string) error {
 	sessionMgr, err := session.NewManager()
 	if err != nil {
 		return fmt.Errorf("failed to create session manager: %w", err)
@@ -54,7 +54,7 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 
 	// session info
 	util.InfoColor.Printf("Created new session: %s\n", sessionID)
-	fmt.Println("Chat session started. Type 'exit' to end the session. Use Shift+Enter for new lines, Enter to submit")
+	fmt.Println("Assistant session started. Type 'exit' to end the session. Use Shift+Enter for new lines, Enter to submit")
 	util.InfoColor.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
 	util.PrintChatDivider()
 
@@ -123,9 +123,9 @@ func processChatMessage(sessionMgr *session.Manager, sess session.Session, cfg c
 	if len(updatedSess.Messages) == 1 {
 		messages = append(messages, llm.Message{
 			Role: "system",
-			Content: `You are Kiwi in chat mode. In this mode, you maintain conversation context and provide thoughtful, helpful responses to user queries over time.
+			Content: `You are Kiwi in assistant mode. In this mode, you maintain conversation context and provide thoughtful, helpful responses to user queries over time.
 
-For this chat session:
+For this assistant session:
 - Retain context from previous messages
 - Provide comprehensive responses when appropriate
 - Ask clarifying questions when user requests are ambiguous

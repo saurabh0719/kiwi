@@ -15,16 +15,16 @@ import (
 func initShellCmd() {
 	shellCmd = &cobra.Command{
 		Use:   "shell",
-		Short: "Get help with a shell command",
-		Long:  `Get help with a shell command. The LLM will provide the appropriate command to accomplish the task.`,
+		Short: "Get help with a terminal command",
+		Long:  `Get help with a terminal command. The LLM will provide the appropriate command to accomplish the task.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return handleShellHelp(cmd, args[0])
+			return handleTerminalHelp(cmd, args[0])
 		},
 	}
 }
 
-func handleShellHelp(cmd *cobra.Command, prompt string) error {
+func handleTerminalHelp(cmd *cobra.Command, prompt string) error {
 	cfg, err := config.Load(cmd)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -41,7 +41,7 @@ func handleShellHelp(cmd *cobra.Command, prompt string) error {
 	messages := []llm.Message{
 		{
 			Role: "system",
-			Content: `You are Kiwi in shell command mode. Your sole purpose is to generate the most appropriate shell command for the user's request.
+			Content: `You are Kiwi in terminal command mode. Your sole purpose is to generate the most appropriate shell command for the user's request.
 
 Response format:
 Provide ONLY the command itself with no explanations, preamble, or follow-up text.
@@ -73,7 +73,7 @@ This is a pure command generation mode - the interface will handle execution and
 
 	// Start the loading spinner
 	spinnerManager := util.GetGlobalSpinnerManager()
-	spinnerManager.StartThinkingSpinner("Generating shell command...")
+	spinnerManager.StartThinkingSpinner("Generating terminal command...")
 
 	startTime := time.Now()
 	response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)

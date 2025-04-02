@@ -46,9 +46,9 @@ sudo mv kiwi /usr/local/bin/
 ## ✨ Features
 
 - **Execute Mode**: Run one-off prompts for quick answers
-- **Interactive Chat**: Maintain context in ongoing conversations
+- **Interactive Assistant**: Maintain context in ongoing conversations
 - **Built-in Tools**: Filesystem operations, shell commands, system information
-- **Shell Command Assistance**: Get terminal command suggestions with confirmation
+- **Terminal Command Assistance**: Get terminal command suggestions with confirmation
 
 ## 📑 Table of Contents
 
@@ -56,10 +56,10 @@ sudo mv kiwi /usr/local/bin/
 * [Usage](#usage)
   * [API Keys](#api-keys)
   * [Execute Mode](#execute-mode)
-  * [Interactive Chat](#interactive-chat)
+  * [Interactive Assistant](#interactive-assistant)
   * [Tool Calls](#tool-calls)
   * [Built-in Tools](#built-in-tools)
-  * [Shell Command Assistance](#shell-command-assistance)
+  * [Terminal Command Assistance](#terminal-command-assistance)
   * [Debug Mode](#debug-mode)
 * [Configuration](#configuration)
 * [Contributing](#contributing)
@@ -76,9 +76,9 @@ sudo mv kiwi /usr/local/bin/
 You'll need to provide your own API keys for the LLM providers you want to use. Set your API keys using the config command:
 
 ```bash
-kiwi config set llm.provider openai
-kiwi config set llm.model gpt-4o
-kiwi config set llm.api_key your-api-key-here
+kiwi -c set llm.provider openai
+kiwi -c set llm.model gpt-4o
+kiwi -c set llm.api_key your-api-key-here
 ```
 
 > **Note**: Currently only OpenAI is supported. This repository is open for contributions to add more LLM providers.
@@ -86,11 +86,11 @@ kiwi config set llm.api_key your-api-key-here
 <span id="execute-mode"></span>
 ### ⚡ Execute Mode
 
-Get quick answers without starting a full chat session:
+Get quick answers without starting a full assistant session:
 
 ```bash
-# Direct execution (default behavior)
-$ kiwi "What is Docker?"
+# Direct execution (default behavior) - no quotes needed
+$ kiwi What is Docker?
 ----------------------------------------------------------------
 
 Docker is an open-source platform that automates the deployment, scaling, and management of applications using containerization. Containers allow you to package an application with all its dependencies into a standardized unit for software development. This ensures that the application runs consistently across different environments.
@@ -110,39 +110,26 @@ Docker is widely used for developing, shipping, and running applications in a co
 
 This example shows the timing breakdown in execute mode, demonstrating that for simple queries without tool calls, almost all the time is spent in LLM processing.
 
-You can also use shorthand commands:
-
-```bash
-# Shorthand command
-$ kiwi e "What is version control?"
-
-# Full command
-$ kiwi execute "What is version control?"
-```
-
 ![Image](https://github.com/user-attachments/assets/85527dba-6e84-41f5-9e3f-e98b72814a00)
 
 
-<span id="interactive-chat"></span>
-### 💬 Interactive Chat
+<span id="interactive-assistant"></span>
+### 💬 Interactive Assistant
 
-Start an interactive chat session that maintains context:
+Start an interactive assistant session that maintains context:
 
 ```bash
-# Shorthand command
-$ kiwi c
-
-# Full command 
-$ kiwi chat
+# Assistant mode
+$ kiwi -a
 ```
 
 Example interaction:
 
 ```
-$ kiwi c
+$ kiwi -a
 
 Created new session: session_1743543868
-Chat session started. Type 'exit' to end the session.
+Assistant session started. Type 'exit' to end the session.
 Using openai model: gpt-4o
 ----------------------------------------
 
@@ -162,7 +149,7 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 [gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s (LLM: 5.74s, Tools: 0.00s, Other: 0.08s)
 ```
 
-In the interactive chat mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
+In the interactive assistant mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
 
 ![Image](https://github.com/user-attachments/assets/c7e32bd8-22b6-4141-814f-554c0d3db87b)
 
@@ -228,14 +215,14 @@ Kiwi comes with several built-in tools that extend its capabilities beyond simpl
 - HTML content extraction to provide readable text
 - Content truncation for very large pages
 
-<span id="shell-command-assistance"></span>
-### 🔧 Shell Command Assistance
+<span id="terminal-command-assistance"></span>
+### 🔧 Terminal Command Assistance
 
-Get help with shell commands:
+Get help with terminal commands using the `-t` flag:
 
 ```bash
-# Shorthand command
-$ kiwi s "find all pdf files modified in the last week"
+# Terminal command assistance
+$ kiwi -t find all pdf files modified in the last week
 ----------------------------------------------------------------
 
 Suggested command:
@@ -258,7 +245,7 @@ Do you want to execute this command? (y/n): y
 
 The tool will suggest a command and ask for confirmation before executing it.
 
-> **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
+> **Note**: For complex commands with pipelines, use execute mode which provides better handling.
 
 <span id="debug-mode"></span>
 ### 🐞 Debug Mode
@@ -267,10 +254,10 @@ Enable debug mode to see token usage and detailed timing metrics:
 
 ```bash
 # Using command-line flag
-$ kiwi e "What is a smartphone" --debug
+$ kiwi What is a smartphone --debug
 
 # Or set it permanently in your config
-$ kiwi config set ui.debug true
+$ kiwi -c set ui.debug true
 ```
 
 Output with debug mode:
@@ -309,10 +296,10 @@ Control whether responses appear incrementally (streaming) or all at once:
 
 ```bash
 # Using command-line flag
-$ kiwi "What is quantum computing?" --streaming=false  # Display complete answer at once
+$ kiwi What is quantum computing? --streaming=false  # Display complete answer at once
 
 # Or set it permanently in your config
-$ kiwi config set ui.streaming false  # Disable streaming for all commands
+$ kiwi -c set ui.streaming false  # Disable streaming for all commands
 ```
 
 When streaming is enabled (default), you'll see the response being generated word by word.
@@ -325,15 +312,15 @@ Kiwi provides a simple configuration system:
 
 ```bash
 # List all settings
-kiwi config list
+kiwi -c
 
 # Get/set specific settings
-kiwi config get llm.provider
-kiwi config set llm.provider openai
-kiwi config set llm.model gpt-4o
-kiwi config set llm.api_key your_api_key
-kiwi config set ui.debug true
-kiwi config set ui.streaming true
+kiwi -c get llm.provider
+kiwi -c set llm.provider openai
+kiwi -c set llm.model gpt-4o
+kiwi -c set llm.api_key your_api_key
+kiwi -c set ui.debug true
+kiwi -c set ui.streaming true
 ```
 
 ### UI Options

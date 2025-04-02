@@ -13,18 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func initExecuteCmd() {
-	executeCmd = &cobra.Command{
-		Use:   "execute",
-		Short: "Execute a prompt",
-		Long:  `Execute a prompt and get a response from the LLM.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return handleExecute(cmd, args[0])
-		},
-	}
-}
-
+// handleExecute processes a direct query/prompt without starting an interactive session
 func handleExecute(cmd *cobra.Command, prompt string) error {
 	cfg, err := config.Load(cmd)
 	if err != nil {
