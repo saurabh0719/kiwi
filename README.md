@@ -16,9 +16,8 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 curl -fsSL https://raw.githubusercontent.com/saurabh0719/kiwi/main/install.sh | bash
 ```
 
-### Download Prebuilt Binaries
-
-You can download prebuilt binaries for your platform from the [GitHub Releases page](https://github.com/saurabh0719/kiwi/releases).
+## ✨ Demo 
+[![asciicast](https://asciinema.org/a/pf9axJfiITOzW4dZYlwIOu3qd.svg)](https://asciinema.org/a/pf9axJfiITOzW4dZYlwIOu3qd)
 
 ### Build from Source
 
@@ -114,6 +113,9 @@ $ kiwi e "What is version control?"
 $ kiwi execute "What is version control?"
 ```
 
+![Image](https://github.com/user-attachments/assets/2f157711-0aee-4e7e-bdad-0130ffcb3704)
+
+
 ### 💬 Interactive Chat
 
 Start an interactive chat session that maintains context:
@@ -154,40 +156,30 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 
 In the interactive chat mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
 
+![Image](https://github.com/user-attachments/assets/48ed57b7-0be9-4468-8a9a-4e64dcd97445)
+
 ### 🛠️ Tool Calls
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
 
 ```bash
-$ kiwi "summarise the contents of this directory"
-🔧 [Tool: filesystem:list] executed in 0.000s
-----------------------------------------------------------------
+...
 
-Here's a summary of the contents of the current directory:
+⠋ [Tool: filesystem] executing...🔧 [Tool: filesystem:list] executed in 0.000s
+  → Requested operation: list
+  → Validating path: .
+  → Path safety check passed
+  → Listing files in directory: .
+  → Listed 15 files/directories in .
 
-- **Directories:**
-  - `.git/`: Version control directory for Git
-  - `.github/`: Contains GitHub-specific configurations or workflows
-  - `bin/`: Likely contains compiled binaries or scripts
-  - `cmd/`: Typically used for command-line tools or applications
-  - `docs/`: Documentation files
-  - `internal/`: Contains internal packages or modules
+⠋ [Tool: filesystem] executing...🔧 [Tool: filesystem:read] executed in 0.000s
+  → Requested operation: read
+  → Validating path: README.md
+  → Path safety check passed
+  → Reading file content: README.md
+  → Successfully read README.md (303 lines, 11300 bytes)
 
-- **Files:**
-  - `.gitignore`: Specifies files and directories to be ignored by Git
-  - `LICENSE`: License information for the project
-  - `Makefile`: Contains build instructions and commands
-  - `README.md`: Project description and usage instructions
-  - `go.mod`: Module definition file for Go projects
-  - `go.sum`: Checksums for Go module dependencies
-  - `install.sh`: Shell script for installation
-  - `kiwi`: Possibly an executable or script related to the project
-
-This structure suggests a Go-based project with version control and documentation setup.
-
-----------------------------------------------------------------
-
-[gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s (LLM: 4.25s, Tools: 0.32s, Other: 0.89s)
+...
 ```
 
 In this example, notice how the time is broken down between LLM processing (4.25s), tool execution (0.32s for filesystem:list), and other overhead (0.89s), giving you insights into where the processing time is being spent.
