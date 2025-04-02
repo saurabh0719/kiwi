@@ -56,9 +56,14 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 
 // Execute executes the tool with the given arguments
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
+	result := core.ToolExecutionResult{
+		ToolMethod: "",
+		Output:     "",
+	}
+
 	commandLine, ok := args["command"].(string)
 	if !ok {
-		return core.ToolExecutionResult{}, fmt.Errorf("command must be a string")
+		return result, fmt.Errorf("command must be a string")
 	}
 
 	// Extract the base command for the method name
@@ -67,6 +72,9 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 	if len(parts) > 0 {
 		methodName = parts[0]
 	}
+	result.ToolMethod = methodName
+
+	result.AddStep(fmt.Sprintf("Command requested: %s", commandLine))
 
 	// Process the command
 	var output string
@@ -74,24 +82,52 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 
 	// Improved command handling for pipes
 	if strings.Contains(commandLine, "|") {
+		result.AddStep("Detected pipe in command, using shell executor")
+
+		// Verify pipeline commands
+		commands := strings.Split(commandLine, "|")
+		for i, cmd := range commands {
+			trimmed := strings.TrimSpace(cmd)
+			baseParts := strings.Fields(trimmed)
+			if len(baseParts) == 0 {
+				continue
+			}
+
+			baseCmd := baseParts[0]
+			if !t.isCommandAllowed(baseCmd) {
+				result.AddStep(fmt.Sprintf("Command not allowed in pipeline: %s", baseCmd))
+				return result, fmt.Errorf("command not allowed in pipeline: %s", baseCmd)
+			}
+			result.AddStep(fmt.Sprintf("Verified command %d in pipeline: %s", i+1, baseCmd))
+		}
+
+		result.AddStep("Executing command with shell...")
 		output, err = t.executeWithShell(ctx, commandLine)
 		if err != nil {
-			return core.ToolExecutionResult{}, err
+			result.AddStep(fmt.Sprintf("Command execution failed: %v", err))
+			return result, err
 		}
 	} else {
 		// For simple commands, continue with whitelist check
 		// Split the command line into command and arguments
 		if len(parts) == 0 {
-			return core.ToolExecutionResult{}, fmt.Errorf("empty command")
+			result.AddStep("Error: Empty command")
+			return result, fmt.Errorf("empty command")
 		}
 
 		baseCommand := parts[0]
 		cmdArgs := parts[1:]
 
+		result.AddStep(fmt.Sprintf("Checking if command is allowed: %s", baseCommand))
+
 		// Check if base command is allowed
 		if !t.isCommandAllowed(baseCommand) {
-			return core.ToolExecutionResult{}, fmt.Errorf("command not allowed: %s", baseCommand)
+			result.AddStep(fmt.Sprintf("Command not allowed: %s", baseCommand))
+			return result, fmt.Errorf("command not allowed: %s", baseCommand)
 		}
+
+		result.AddStep(fmt.Sprintf("Command allowed: %s", baseCommand))
+		result.AddStep(fmt.Sprintf("Executing: %s %s", baseCommand, strings.Join(cmdArgs, " ")))
 
 		// Create command
 		cmd := exec.CommandContext(ctx, baseCommand, cmdArgs...)
@@ -99,15 +135,18 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 		// Run command and capture output
 		outputBytes, err := cmd.CombinedOutput()
 		if err != nil {
-			return core.ToolExecutionResult{}, fmt.Errorf("command failed: %w\nOutput: %s", err, string(outputBytes))
+			result.AddStep(fmt.Sprintf("Command execution failed: %v", err))
+			return result, fmt.Errorf("command failed: %w\nOutput: %s", err, string(outputBytes))
 		}
 		output = string(outputBytes)
 	}
 
-	return core.ToolExecutionResult{
-		ToolMethod: methodName,
-		Output:     output,
-	}, nil
+	outputLines := strings.Count(output, "\n") + 1
+	outputBytes := len(output)
+	result.AddStep(fmt.Sprintf("Command completed successfully with %d lines (%d bytes) of output", outputLines, outputBytes))
+
+	result.Output = output
+	return result, nil
 }
 
 // executeWithShell runs a command using the shell to handle pipes and redirects

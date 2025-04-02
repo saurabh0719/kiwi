@@ -308,8 +308,6 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 
 	// Always stop the spinner after tool execution
 	spinnerManager.TransitionToResponse()
-
-	// Start thinking spinner for continuing conversation
 	spinnerManager.StartThinkingSpinner("Continuing conversation...")
 
 	if err != nil {
@@ -351,7 +349,7 @@ func (a *Adapter) ChatStream(ctx context.Context, messages []core.Message, handl
 	var totalTokensGenerated int
 	var totalPromptTokens, totalCompletionTokens int
 
-	// Maximum number of function call iterations to prevent infinite loops
+	// Maximum number of function call iterations
 	maxCalls := 10
 	callCount := 0
 

@@ -27,8 +27,14 @@ type Tool interface {
 
 // ToolExecutionResult is the result of a tool execution
 type ToolExecutionResult struct {
-	ToolMethod string `json:"tool_method,omitempty"`
-	Output     string `json:"output"`
+	ToolMethod         string   `json:"tool_method,omitempty"`
+	ToolExecutionSteps []string `json:"tool_execution_steps,omitempty"`
+	Output             string   `json:"output"`
+}
+
+// AddStep adds an execution step to the result
+func (r *ToolExecutionResult) AddStep(step string) {
+	r.ToolExecutionSteps = append(r.ToolExecutionSteps, step)
 }
 
 // Factory is a function type that creates new tools

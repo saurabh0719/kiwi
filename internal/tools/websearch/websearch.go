@@ -63,52 +63,74 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 
 // Execute executes the tool with the given arguments
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
+	result := core.ToolExecutionResult{
+		ToolMethod: "",
+		Output:     "",
+	}
+
 	// Extract method parameter
 	method, ok := args["method"].(string)
 	if !ok || method == "" {
-		return core.ToolExecutionResult{}, fmt.Errorf("method must be a non-empty string ('visit')")
+		return result, fmt.Errorf("method must be a non-empty string ('visit')")
 	}
+	result.ToolMethod = method
+
+	result.AddStep(fmt.Sprintf("Method requested: %s", method))
 
 	// Extract query parameter
 	query, ok := args["query"].(string)
 	if !ok || query == "" {
-		return core.ToolExecutionResult{}, fmt.Errorf("query must be a non-empty string")
+		return result, fmt.Errorf("query must be a non-empty string")
 	}
+
+	result.AddStep(fmt.Sprintf("URL requested: %s", query))
 
 	// Only support the 'visit' method
 	if strings.ToLower(method) != "visit" {
-		return core.ToolExecutionResult{}, fmt.Errorf("unknown method: %s, supported method is 'visit'", method)
+		result.AddStep(fmt.Sprintf("Unknown method: %s (only 'visit' is supported)", method))
+		return result, fmt.Errorf("unknown method: %s, supported method is 'visit'", method)
 	}
 
-	// Visit the URL
-	result, err := t.VisitURL(ctx, query)
-	if err != nil {
-		return core.ToolExecutionResult{}, err
-	}
-
-	return core.ToolExecutionResult{
-		ToolMethod: method,
-		Output:     result,
-	}, nil
-}
-
-// VisitURL visits a URL and returns its text content
-func (t *Tool) VisitURL(ctx context.Context, urlStr string) (string, error) {
 	// Validate URL
-	parsedURL, err := url.Parse(urlStr)
+	parsedURL, err := url.Parse(query)
 	if err != nil {
-		return "", fmt.Errorf("invalid URL: %w", err)
+		result.AddStep(fmt.Sprintf("Invalid URL: %v", err))
+		return result, fmt.Errorf("invalid URL: %w", err)
 	}
 
 	// Ensure the URL has a scheme
 	if parsedURL.Scheme == "" {
-		urlStr = "https://" + urlStr
-		parsedURL, err = url.Parse(urlStr)
+		result.AddStep(fmt.Sprintf("Adding https:// scheme to URL: %s", query))
+		query = "https://" + query
+		parsedURL, err = url.Parse(query)
 		if err != nil {
-			return "", fmt.Errorf("invalid URL: %w", err)
+			result.AddStep(fmt.Sprintf("Invalid URL after adding scheme: %v", err))
+			return result, fmt.Errorf("invalid URL: %w", err)
 		}
 	}
 
+	result.AddStep(fmt.Sprintf("Validated URL: %s", query))
+	result.AddStep("Sending HTTP request...")
+
+	// Visit the URL
+	content, err := t.VisitURL(ctx, query)
+	if err != nil {
+		result.AddStep(fmt.Sprintf("Error visiting URL: %v", err))
+		return result, err
+	}
+
+	// Get approximate size stats
+	contentLength := len(content)
+	lineCount := strings.Count(content, "\n") + 1
+	result.AddStep(fmt.Sprintf("Successfully retrieved content from %s (%d lines, %d bytes)",
+		query, lineCount, contentLength))
+
+	result.Output = content
+	return result, nil
+}
+
+// VisitURL visits a URL and returns its text content
+func (t *Tool) VisitURL(ctx context.Context, urlStr string) (string, error) {
 	// Create a request
 	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	if err != nil {

@@ -52,33 +52,59 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 
 // Execute executes the tool with the given arguments
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
+	result := core.ToolExecutionResult{
+		ToolMethod: "",
+		Output:     "",
+	}
+
 	infoType, ok := args["type"].(string)
 	if !ok {
-		return core.ToolExecutionResult{}, fmt.Errorf("type must be a string")
+		return result, fmt.Errorf("type must be a string")
 	}
+
+	result.ToolMethod = infoType
+	result.AddStep(fmt.Sprintf("Requested information type: %s", infoType))
 
 	var output string
 	var err error
 
 	switch infoType {
 	case "basic":
+		result.AddStep("Gathering basic system information...")
 		output, err = t.getBasicInfo()
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error getting basic info: %v", err))
+		} else {
+			result.AddStep("Successfully retrieved basic system information")
+		}
 	case "memory":
+		result.AddStep("Gathering memory usage statistics...")
 		output, err = t.getMemoryInfo()
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error getting memory info: %v", err))
+		} else {
+			result.AddStep("Successfully retrieved memory usage information")
+		}
 	case "env":
+		result.AddStep("Gathering environment variables...")
 		output, err = t.getEnvironmentInfo()
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error getting environment info: %v", err))
+		} else {
+			varCount := strings.Count(output, "\n")
+			result.AddStep(fmt.Sprintf("Successfully retrieved %d environment variables (excluding sensitive ones)", varCount))
+		}
 	default:
-		return core.ToolExecutionResult{}, fmt.Errorf("unknown info type: %s", infoType)
+		result.AddStep(fmt.Sprintf("Unknown information type requested: %s", infoType))
+		return result, fmt.Errorf("unknown info type: %s", infoType)
 	}
 
 	if err != nil {
-		return core.ToolExecutionResult{}, err
+		return result, err
 	}
 
-	return core.ToolExecutionResult{
-		ToolMethod: infoType,
-		Output:     output,
-	}, nil
+	result.Output = output
+	return result, nil
 }
 
 // getBasicInfo returns basic system information

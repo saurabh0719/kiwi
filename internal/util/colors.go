@@ -23,4 +23,7 @@ var (
 
 	// ToolColor is used for tool execution messages
 	ToolColor = color.New(color.FgYellow)
+
+	// StepColor is used for tool execution steps (faded/subtle)
+	StepColor = color.New(color.FgHiBlack)
 )

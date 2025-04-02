@@ -57,8 +57,9 @@ func (t *Tool) Parameters() map[string]core.Parameter {
 // Execute runs the filesystem operation
 func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.ToolExecutionResult, error) {
 	result := core.ToolExecutionResult{
-		ToolMethod: "",
-		Output:     "",
+		ToolMethod:         "",
+		ToolExecutionSteps: []string{},
+		Output:             "",
 	}
 
 	// Check if operation is a valid string
@@ -73,6 +74,7 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 	}
 
 	result.ToolMethod = operation
+	result.AddStep(fmt.Sprintf("Requested operation: %s", operation))
 
 	// Check if path is a valid string
 	pathVal, ok := args["path"]
@@ -85,10 +87,15 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 		return result, fmt.Errorf("path must be a string")
 	}
 
+	result.AddStep(fmt.Sprintf("Validating path: %s", path))
+
 	// Validate the path for safety
 	if !isPathSafe(path) {
+		result.AddStep(fmt.Sprintf("Path safety check failed for: %s", path))
 		return result, fmt.Errorf("path is not safe: %s", path)
 	}
+
+	result.AddStep(fmt.Sprintf("Path safety check passed"))
 
 	var err error
 	var output string
@@ -96,15 +103,43 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 	// Execute the requested operation
 	switch operation {
 	case "list":
+		result.AddStep(fmt.Sprintf("Listing files in directory: %s", path))
 		output, err = t.listFiles(path)
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error listing files: %v", err))
+		} else {
+			fileCount := strings.Count(output, "\n")
+			result.AddStep(fmt.Sprintf("Listed %d files/directories in %s", fileCount, path))
+		}
 	case "read":
+		result.AddStep(fmt.Sprintf("Reading file content: %s", path))
 		output, err = t.readFile(path)
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error reading file: %v", err))
+		} else {
+			lineCount := strings.Count(output, "\n") + 1
+			result.AddStep(fmt.Sprintf("Successfully read %s (%d lines, %d bytes)", path, lineCount, len(output)))
+		}
 	case "write":
 		content, _ := args["content"].(string)
+		contentLength := len(content)
+		result.AddStep(fmt.Sprintf("Writing %d bytes to file: %s", contentLength, path))
 		output, err = t.writeFile(path, content)
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error writing to file: %v", err))
+		} else {
+			result.AddStep(fmt.Sprintf("Successfully wrote to file %s", path))
+		}
 	case "delete":
+		result.AddStep(fmt.Sprintf("Deleting file: %s", path))
 		output, err = t.deleteFile(path)
+		if err != nil {
+			result.AddStep(fmt.Sprintf("Error deleting file: %v", err))
+		} else {
+			result.AddStep(fmt.Sprintf("Successfully deleted file %s", path))
+		}
 	default:
+		result.AddStep(fmt.Sprintf("Unknown operation requested: %s", operation))
 		err = fmt.Errorf("unknown operation: %s", operation)
 	}
 
