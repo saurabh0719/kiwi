@@ -299,16 +299,22 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 		}
 	}
 
-	// Execute the tool with visual feedback
-	// The ExecuteToolWithFeedback method itself manages its own spinner via the spinnerManager
-	result, err := util.ExecuteToolWithFeedback(ctx, tool, args)
+	// Start a tool spinner
+	toolName := tool.Name()
+	spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
+
+	// Execute the tool
+	result, err := tools.ExecuteToolWithFeedback(ctx, tool, args)
+
+	// Always stop the spinner after tool execution
+	spinnerManager.TransitionToResponse()
+
+	// Start thinking spinner for continuing conversation
+	spinnerManager.StartThinkingSpinner("Continuing conversation...")
+
 	if err != nil {
-		// Error handling is done in ExecuteToolWithFeedback
 		return fmt.Sprintf("Error executing function: %v", err)
 	}
-
-	// After tool execution, we need a new spinner for continuing the conversation
-	spinnerManager.StartThinkingSpinner("Continuing conversation...")
 
 	return result
 }
@@ -468,8 +474,6 @@ func (a *Adapter) processStream(ctx context.Context, messages []openaiapi.ChatCo
 				// If finish reason is "tool_calls", we need to process them
 				if choice.FinishReason == "tool_calls" {
 					toolCallDetected = true
-					// Start a transition spinner before executing tool calls
-					spinnerManager.StartThinkingSpinner("Preparing to execute tools...")
 				}
 			}
 		}
@@ -483,8 +487,8 @@ func (a *Adapter) processToolCallsNonStreaming(ctx context.Context, messages []o
 	// Get the global spinner manager
 	spinnerManager := util.GetGlobalSpinnerManager()
 
-	// Start a spinner indicating we're processing tool calls
-	spinnerManager.StartThinkingSpinner("Processing tool calls...")
+	// Start a spinner for this process
+	spinnerManager.StartThinkingSpinner("Processing request...")
 
 	// Create non-streaming request
 	nonStreamReq := a.createChatCompletionRequest(messages, false) // false = not streaming

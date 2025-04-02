@@ -56,7 +56,7 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 	util.InfoColor.Printf("Created new session: %s\n", sessionID)
 	fmt.Println("Chat session started. Type 'exit' to end the session. Use Shift+Enter for new lines, Enter to submit")
 	util.InfoColor.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
-	util.DividerColor.Println("----------------------------------------")
+	util.PrintChatDivider()
 
 	for {
 		fmt.Println()
@@ -185,8 +185,8 @@ Remember this is an ongoing conversation where context builds over time.`,
 		}
 
 		if cfg.UI.Debug {
-			util.PrintDebugMetrics(metrics, adapter.GetModel())
-			util.DividerColor.Println("----------------------------------------")
+			core.PrintResponseMetrics(metrics, adapter.GetModel())
+			util.PrintChatDivider()
 		}
 
 		if err := sessionMgr.AddMessage(sess.ID, "assistant", completeResponse); err != nil {

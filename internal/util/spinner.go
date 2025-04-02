@@ -2,11 +2,10 @@ package util
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
+
+	bs "github.com/briandowns/spinner"
 )
 
 // SpinnerState represents the current state of spinners in the application
@@ -21,106 +20,20 @@ const (
 	SpinnerStateTool
 )
 
-// Minimum time between spinner transitions to prevent flickering
-const minTransitionTime = 300 * time.Millisecond
-
 // Debug mode - set to true to enable debug messages for spinner transitions
 var debugSpinners = false
 
 // Global spinner manager instance
 var globalSpinnerManager = NewSpinnerManager()
 
-// Spinner represents a simple text-based loading spinner
-type Spinner struct {
-	frames    []string
-	message   string
-	stopChan  chan struct{}
-	waitGroup sync.WaitGroup
-	running   bool
-}
-
-// NewSpinner creates a new spinner with the specified message
-func NewSpinner(message string) *Spinner {
-	return &Spinner{
-		frames:   []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"},
-		message:  message,
-		stopChan: make(chan struct{}),
-		running:  false,
-	}
-}
-
-// Start starts the spinner
-func (s *Spinner) Start() {
-	if s.running {
-		return
-	}
-	s.running = true
-
-	// Set up signal handling to properly clean up the spinner on program termination
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		s.Stop()
-		os.Exit(1)
-	}()
-
-	s.waitGroup.Add(1)
-	go func() {
-		defer s.waitGroup.Done()
-		frameIndex := 0
-		for {
-			select {
-			case <-s.stopChan:
-				fmt.Printf("\r%s\r", ClearLine())
-				return
-			default:
-				frame := s.frames[frameIndex%len(s.frames)]
-				fmt.Printf("\r%s %s", frame, s.message)
-				frameIndex++
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
-}
-
-// Stop stops the spinner
-func (s *Spinner) Stop() {
-	if !s.running {
-		return
-	}
-
-	// Use a new channel to avoid closing an already closed channel
-	select {
-	case <-s.stopChan:
-		// Channel already closed, nothing to do
-	default:
-		close(s.stopChan)
-	}
-
-	s.waitGroup.Wait()
-	s.running = false
-
-	// Always make sure to clear the line after stopping
-	fmt.Printf("\r%s\r", ClearLine())
-}
-
-// SetMessage updates the spinner's message
-func (s *Spinner) SetMessage(message string) {
-	s.message = message
-}
-
-// ClearLine returns a string that, when printed, clears the current line
-func ClearLine() string {
-	return "\033[2K"
-}
-
 // SpinnerManager ensures only one spinner is active at a time
 // It acts as a singleton manager for all spinners in the application
 type SpinnerManager struct {
-	activeSpinner  *Spinner
+	spinner        *bs.Spinner
 	mutex          sync.Mutex
 	currentState   SpinnerState
+	currentMsg     string
+	lastMsg        string
 	lastTransition time.Time
 	locked         bool
 }
@@ -128,6 +41,7 @@ type SpinnerManager struct {
 // NewSpinnerManager creates a new spinner manager
 func NewSpinnerManager() *SpinnerManager {
 	return &SpinnerManager{
+		spinner:        nil,
 		currentState:   SpinnerStateNone,
 		lastTransition: time.Now().Add(-1 * time.Second), // Initialize with past time
 		locked:         false,
@@ -150,18 +64,6 @@ func (sm *SpinnerManager) logTransition(from, to SpinnerState, message string) {
 	}
 }
 
-// ensureTransitionDelay ensures enough time has passed between transitions
-func (sm *SpinnerManager) ensureTransitionDelay() {
-	elapsed := time.Since(sm.lastTransition)
-	if elapsed < minTransitionTime {
-		delay := minTransitionTime - elapsed
-		if debugSpinners {
-			fmt.Printf("\n[SPINNER] Delaying transition by %s\n", delay)
-		}
-		time.Sleep(delay)
-	}
-}
-
 // LockSpinners prevents any spinner state changes
 func (sm *SpinnerManager) LockSpinners() {
 	sm.mutex.Lock()
@@ -171,9 +73,9 @@ func (sm *SpinnerManager) LockSpinners() {
 	sm.logTransition(sm.currentState, sm.currentState, "LOCK - no transitions allowed")
 
 	// Stop any active spinner when locking
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
+	if sm.spinner != nil {
+		sm.spinner.Stop()
+		sm.spinner = nil
 	}
 }
 
@@ -185,84 +87,71 @@ func (sm *SpinnerManager) UnlockSpinners() {
 	sm.logTransition(sm.currentState, sm.currentState, "UNLOCK - transitions allowed")
 }
 
+// clearSpinner stops the current spinner if any
+func (sm *SpinnerManager) clearSpinner() {
+	if sm.spinner != nil {
+		sm.spinner.Stop()
+		// Clear the line to make sure no text is left
+		fmt.Print("\r\033[K")
+		sm.spinner = nil
+	}
+}
+
 // StartThinkingSpinner starts the main thinking spinner
-func (sm *SpinnerManager) StartThinkingSpinner(message string) *Spinner {
+func (sm *SpinnerManager) StartThinkingSpinner(message string) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
 	if sm.locked {
 		sm.logTransition(sm.currentState, sm.currentState, "BLOCKED thinking: "+message)
-		return nil
+		return
 	}
 
-	// Only start if we're not already in this state
-	if sm.currentState == SpinnerStateThinking && sm.activeSpinner != nil {
-		// Just update the message
-		sm.activeSpinner.SetMessage(message)
-		sm.logTransition(sm.currentState, sm.currentState, "UPDATE thinking: "+message)
-		return sm.activeSpinner
-	}
-
-	// Ensure minimum time between transitions
-	sm.ensureTransitionDelay()
-
-	// Stop any active spinner first
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
-	}
-
-	oldState := sm.currentState
-	sm.currentState = SpinnerStateThinking
-	sm.logTransition(oldState, sm.currentState, "START thinking: "+message)
+	// Clear any existing spinner
+	sm.clearSpinner()
 
 	// Create and start a new spinner
-	spinner := NewSpinner(message)
-	spinner.Start()
-	sm.activeSpinner = spinner
+	s := bs.New(bs.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " " + message
+	s.Color("cyan")
+	s.Start()
+
+	sm.spinner = s
+	sm.currentMsg = message
+	sm.currentState = SpinnerStateThinking
 	sm.lastTransition = time.Now()
 
-	return spinner
+	sm.logTransition(sm.currentState, SpinnerStateThinking, "START thinking: "+message)
 }
 
 // StartToolSpinner starts a tool execution spinner
-func (sm *SpinnerManager) StartToolSpinner(message string) *Spinner {
+func (sm *SpinnerManager) StartToolSpinner(message string) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
 	if sm.locked {
 		sm.logTransition(sm.currentState, sm.currentState, "BLOCKED tool: "+message)
-		return nil
+		return
 	}
 
-	// Only start if we're not already in this state
-	if sm.currentState == SpinnerStateTool && sm.activeSpinner != nil {
-		// Just update the message
-		sm.activeSpinner.SetMessage(message)
-		sm.logTransition(sm.currentState, sm.currentState, "UPDATE tool: "+message)
-		return sm.activeSpinner
-	}
+	// Store the last message before clearing
+	sm.lastMsg = sm.currentMsg
 
-	// Ensure minimum time between transitions
-	sm.ensureTransitionDelay()
-
-	// Stop any active spinner first
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
-	}
-
-	oldState := sm.currentState
-	sm.currentState = SpinnerStateTool
-	sm.logTransition(oldState, sm.currentState, "START tool: "+message)
+	// Clear any existing spinner
+	sm.clearSpinner()
 
 	// Create and start a new spinner
-	spinner := NewSpinner(message)
-	spinner.Start()
-	sm.activeSpinner = spinner
+	s := bs.New(bs.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " " + message
+	s.Color("yellow")
+	s.Start()
+
+	sm.spinner = s
+	sm.currentMsg = message
+	sm.currentState = SpinnerStateTool
 	sm.lastTransition = time.Now()
 
-	return spinner
+	sm.logTransition(sm.currentState, SpinnerStateTool, "START tool: "+message)
 }
 
 // TransitionToResponse stops the spinner for showing a response
@@ -275,26 +164,15 @@ func (sm *SpinnerManager) TransitionToResponse() {
 		return
 	}
 
-	// No need to transition if we're already in this state
-	if sm.currentState == SpinnerStateNone {
-		return
-	}
-
-	// Ensure minimum time between transitions
-	sm.ensureTransitionDelay()
-
 	oldState := sm.currentState
 
-	// Stop any active spinner
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
-	}
+	// Clear any existing spinner
+	sm.clearSpinner()
 
 	sm.currentState = SpinnerStateNone
 	sm.lastTransition = time.Now()
 
-	sm.logTransition(oldState, sm.currentState, "TRANSITION to response")
+	sm.logTransition(oldState, SpinnerStateNone, "TRANSITION to response")
 }
 
 // StopAllSpinners stops any active spinner and clears the state
@@ -302,20 +180,15 @@ func (sm *SpinnerManager) StopAllSpinners() {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	// No need to do anything if there's no active spinner
-	if sm.activeSpinner == nil {
-		return
-	}
-
 	oldState := sm.currentState
 
-	// Stop the active spinner
-	sm.activeSpinner.Stop()
-	sm.activeSpinner = nil
+	// Clear any existing spinner
+	sm.clearSpinner()
+
 	sm.currentState = SpinnerStateNone
 	sm.lastTransition = time.Now()
 
-	sm.logTransition(oldState, sm.currentState, "STOP all spinners")
+	sm.logTransition(oldState, SpinnerStateNone, "STOP all spinners")
 }
 
 // GetCurrentState returns the current spinner state
@@ -331,48 +204,34 @@ func GetGlobalSpinnerManager() *SpinnerManager {
 	return globalSpinnerManager
 }
 
-// Ensure the spinner remains active during all stages of processing
-// Start the spinner at the beginning of any long-running process
-func (sm *SpinnerManager) StartProcessingSpinner(message string) *Spinner {
+// StartProcessingSpinner starts a processing spinner
+func (sm *SpinnerManager) StartProcessingSpinner(message string) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
 	if sm.locked {
 		sm.logTransition(sm.currentState, sm.currentState, "BLOCKED processing: "+message)
-		return nil
+		return
 	}
 
-	// Only start if we're not already in this state
-	if sm.currentState == SpinnerStateTool && sm.activeSpinner != nil {
-		// Just update the message
-		sm.activeSpinner.SetMessage(message)
-		sm.logTransition(sm.currentState, sm.currentState, "UPDATE processing: "+message)
-		return sm.activeSpinner
-	}
-
-	// Ensure minimum time between transitions
-	sm.ensureTransitionDelay()
-
-	// Stop any active spinner first
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
-	}
-
-	oldState := sm.currentState
-	sm.currentState = SpinnerStateTool
-	sm.logTransition(oldState, sm.currentState, "START processing: "+message)
+	// Clear any existing spinner
+	sm.clearSpinner()
 
 	// Create and start a new spinner
-	spinner := NewSpinner(message)
-	spinner.Start()
-	sm.activeSpinner = spinner
+	s := bs.New(bs.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " " + message
+	s.Color("yellow")
+	s.Start()
+
+	sm.spinner = s
+	sm.currentMsg = message
+	sm.currentState = SpinnerStateTool
 	sm.lastTransition = time.Now()
 
-	return spinner
+	sm.logTransition(sm.currentState, SpinnerStateTool, "START processing: "+message)
 }
 
-// Stop the spinner once the process is complete
+// StopProcessingSpinner stops the processing spinner
 func (sm *SpinnerManager) StopProcessingSpinner() {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -382,24 +241,24 @@ func (sm *SpinnerManager) StopProcessingSpinner() {
 		return
 	}
 
-	// No need to transition if we're already in this state
-	if sm.currentState == SpinnerStateNone {
-		return
-	}
-
-	// Ensure minimum time between transitions
-	sm.ensureTransitionDelay()
-
 	oldState := sm.currentState
 
-	// Stop any active spinner
-	if sm.activeSpinner != nil {
-		sm.activeSpinner.Stop()
-		sm.activeSpinner = nil
-	}
+	// Clear any existing spinner
+	sm.clearSpinner()
 
 	sm.currentState = SpinnerStateNone
 	sm.lastTransition = time.Now()
 
-	sm.logTransition(oldState, sm.currentState, "STOP processing")
+	sm.logTransition(oldState, SpinnerStateNone, "STOP processing")
+}
+
+// ClearSpinner stops all spinners and clears the line
+func ClearSpinner(spinnerManager *SpinnerManager) {
+	spinnerManager.StopAllSpinners()
+}
+
+// PrepareForResponse handles the common pattern of stopping spinners
+// before displaying a response
+func PrepareForResponse(spinnerManager *SpinnerManager) {
+	ClearSpinner(spinnerManager)
 }

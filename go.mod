@@ -5,6 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
+	github.com/briandowns/spinner v1.23.2
 	github.com/fatih/color v1.18.0
 	github.com/sashabaranov/go-openai v1.38.1
 	github.com/spf13/cobra v1.8.0

@@ -20,4 +20,7 @@ var (
 	InfoColor = color.New(color.FgHiBlue)
 
 	PromptColor = color.New(color.FgMagenta)
+
+	// ToolColor is used for tool execution messages
+	ToolColor = color.New(color.FgYellow)
 )

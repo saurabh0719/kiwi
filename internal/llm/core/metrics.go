@@ -1,12 +1,17 @@
-package util
+package core
 
 import (
-	"github.com/saurabh0719/kiwi/internal/llm/core"
+	"github.com/fatih/color"
 )
 
-// PrintDebugMetrics formats and prints the debug metrics in a consistent way
+var (
+	// StatsColor is used for printing metrics
+	StatsColor = color.New(color.FgCyan)
+)
+
+// PrintResponseMetrics formats and prints the response metrics in a consistent way
 // This includes token usage and detailed timing metrics
-func PrintDebugMetrics(metrics *core.ResponseMetrics, modelName string) {
+func PrintResponseMetrics(metrics *ResponseMetrics, modelName string) {
 	// Calculate timing information
 	totalTime := metrics.ResponseTime.Seconds()
 	llmTime := metrics.LLMTime.Seconds()

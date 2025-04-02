@@ -72,15 +72,15 @@ This is a pure command generation mode - the interface will handle execution and
 	}
 
 	// Start the loading spinner
-	spinner := util.NewSpinner("Generating shell command...")
-	spinner.Start()
+	spinnerManager := util.GetGlobalSpinnerManager()
+	spinnerManager.StartThinkingSpinner("Generating shell command...")
 
 	startTime := time.Now()
 	response, metrics, err := adapter.ChatWithMetrics(context.Background(), messages)
 	elapsedTime := time.Since(startTime)
 
 	// Stop the spinner
-	spinner.Stop()
+	spinnerManager.TransitionToResponse()
 
 	if err != nil {
 		return fmt.Errorf("failed to get response: %w", err)
