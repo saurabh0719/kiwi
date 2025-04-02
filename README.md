@@ -58,11 +58,10 @@ sudo mv kiwi /usr/local/bin/
   * [Execute Mode](#execute-mode)
   * [Interactive Chat](#interactive-chat)
   * [Tool Calls](#tool-calls)
+  * [Built-in Tools](#built-in-tools)
   * [Shell Command Assistance](#shell-command-assistance)
   * [Debug Mode](#debug-mode)
 * [Configuration](#configuration)
-* [Built-in Tools](#built-in-tools)
-* [Custom Tools](#custom-tools)
 * [Contributing](#contributing)
   * [Adding New LLM Providers](#adding-new-llm-providers)
   * [Creating Custom Tools](#creating-custom-tools)
@@ -195,6 +194,39 @@ Kiwi can use built-in tools to perform tasks like interacting with the filesyste
 ```
 
 In this example, notice how the time is broken down between LLM processing (4.25s), tool execution (0.32s for filesystem:list), and other overhead (0.89s), giving you insights into where the processing time is being spent.
+
+<span id="built-in-tools"></span>
+### 🧰 Built-in Tools
+
+Kiwi comes with several built-in tools that extend its capabilities beyond simple text responses.
+
+#### 📂 Filesystem Tool
+
+**Operations:**
+- **list**: Lists all files and directories in a specified path
+- **read**: Reads the contents of a specified file
+- **write**: Creates or updates a file with specified content
+- **delete**: Deletes a specified file
+
+#### 🖥️ Shell Tool
+
+**Features:**
+- Limited to a whitelist of safe commands (`ls`, `cat`, `grep`, `find`, `pwd`, `head`, `tail`, `wc`, `echo`, `date`, `ps`, `df`, `du`, `free`, `top`)
+- Pipeline support for combining simple commands
+- Command validation to prevent dangerous operations
+
+#### 🔍 System Info Tool
+
+**Information Types:**
+- **basic**: General system information (OS, architecture, CPU count, hostname, etc.)
+- **memory**: Memory usage statistics
+- **env**: Non-sensitive environment variables
+
+#### 🌐 Web Search Tool
+
+**Features:**
+- HTML content extraction to provide readable text
+- Content truncation for very large pages
 
 <span id="shell-command-assistance"></span>
 ### 🔧 Shell Command Assistance
