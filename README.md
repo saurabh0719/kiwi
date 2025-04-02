@@ -20,9 +20,6 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 curl -fsSL https://raw.githubusercontent.com/saurabh0719/kiwi/main/install.sh | bash
 ```
 
-## ✨ Demo 
-[![asciicast](https://asciinema.org/a/pf9axJfiITOzW4dZYlwIOu3qd.svg)](https://asciinema.org/a/pf9axJfiITOzW4dZYlwIOu3qd)
-
 ### Build from Source
 
 ```bash
