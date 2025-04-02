@@ -26,7 +26,7 @@ func New() *Tool {
 	parameters := map[string]core.Parameter{
 		"method": {
 			Type:        "string",
-			Description: "Method to use: 'visit' to visit a URL and read its content.",
+			Description: "Method to use: ONLY 'visit' is supported to visit a URL and read its content.",
 			Required:    true,
 		},
 		"query": {
@@ -38,7 +38,7 @@ func New() *Tool {
 
 	return &Tool{
 		name:        "websearch",
-		description: "Search the web, visit URLs, or conduct multi-step research. The 'research' method automatically searches Google, visits the top sites, extracts relevant information, and summarizes the findings - use this for any information-gathering task. When you need detailed information about any topic (current events, facts, news, or data), always use the 'research' method, not just 'google'.",
+		description: "Visit URLs and read web content. IMPORTANT: ONLY the 'visit' method is supported - use this method with a valid URL to get content from a webpage.",
 		parameters:  parameters,
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
@@ -85,10 +85,10 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 
 	result.AddStep(fmt.Sprintf("URL requested: %s", query))
 
-	// Only support the 'visit' method
+	// Only support the 'visit' method - fail fast with a clear message
 	if strings.ToLower(method) != "visit" {
-		result.AddStep(fmt.Sprintf("Unknown method: %s (only 'visit' is supported)", method))
-		return result, fmt.Errorf("unknown method: %s, supported method is 'visit'", method)
+		result.AddStep(fmt.Sprintf("Method '%s' is not supported (only 'visit' is supported)", method))
+		return result, fmt.Errorf("unsupported method: '%s'. The only supported method is 'visit'", method)
 	}
 
 	// Validate URL

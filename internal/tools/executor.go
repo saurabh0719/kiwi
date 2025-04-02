@@ -17,9 +17,11 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 	var lastErr error
 	var toolExecutionResult core.ToolExecutionResult
 
-	// Make sure we're at the beginning of a line and any previous output is cleared
-	// Do this before execution to avoid clearing retry messages
-	fmt.Print("\r\033[K")
+	// Get spinner for visual feedback
+	spinnerManager := util.GetGlobalSpinnerManager()
+
+	// Show a spinner while tool is executing
+	spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
 
 	// Start the execution timer
 	startTime := time.Now()
@@ -35,24 +37,21 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 
 		lastErr = err
 		if attempt < maxRetries {
+			// Stop spinner to show the error message clearly
+			spinnerManager.TransitionToResponse()
 			util.StepColor.Printf("  → Attempt %d failed: %s. Retrying...\n", attempt, err.Error())
 			// Short delay before retry (could be exponential backoff if needed)
 			time.Sleep(500 * time.Millisecond)
+			// Restart spinner for next attempt
+			spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing (attempt %d)...", toolName, attempt+1))
 		}
 	}
 
 	// Calculate elapsed time after all attempts
 	elapsedTime := time.Since(startTime)
 
-	// Clear spinner and any previous output
-	// Move cursor to beginning of current line and clear
-	fmt.Print("\r\033[K")
-	// Move cursor up one line (in case of spinner) and clear that line too
-	fmt.Print("\033[1A\033[K")
-	// In case there are multiple lines of spinner output, clear one more line
-	fmt.Print("\033[1A\033[K")
-	// Return to original position
-	fmt.Print("\033[1B")
+	// Stop the spinner before showing results
+	spinnerManager.TransitionToResponse()
 
 	// Show that the tool ran, regardless of success/failure
 	util.ToolColor.Printf("🔧 [Tool: %s:%s] executed in %.3fs\n", toolName, toolExecutionResult.ToolMethod, elapsedTime.Seconds())

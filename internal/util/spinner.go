@@ -91,8 +91,11 @@ func (sm *SpinnerManager) UnlockSpinners() {
 func (sm *SpinnerManager) clearSpinner() {
 	if sm.spinner != nil {
 		sm.spinner.Stop()
-		// Clear the line to make sure no text is left
+
+		// Basic terminal cleanup - stop at the current line
+		// Clear the current line
 		fmt.Print("\r\033[K")
+
 		sm.spinner = nil
 	}
 }

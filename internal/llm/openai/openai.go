@@ -237,6 +237,10 @@ func (a *Adapter) createChatCompletionRequest(messages []openaiapi.ChatCompletio
 func (a *Adapter) processToolCalls(ctx context.Context, toolCalls []openaiapi.ToolCall) []openaiapi.ChatCompletionMessage {
 	var resultMessages []openaiapi.ChatCompletionMessage
 
+	// Get the global spinner manager and clear any spinners before tool execution
+	spinnerManager := util.GetGlobalSpinnerManager()
+	spinnerManager.TransitionToResponse()
+
 	for _, toolCall := range toolCalls {
 		if toolCall.Type != openaiapi.ToolTypeFunction {
 			continue
@@ -288,6 +292,18 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 		return fmt.Sprintf("Error parsing arguments: %v", err)
 	}
 
+	// Validate websearch tool parameters
+	// We need to handle this specially to avoid multiple retries with invalid methods
+	if functionName == "websearch" {
+		if method, exists := args["method"].(string); exists {
+			if method != "visit" {
+				// Return a clear error message for unsupported methods
+				spinnerManager.TransitionToResponse()
+				return fmt.Sprintf("The websearch tool only supports the 'visit' method, not '%s'. Please use 'visit' with a URL to retrieve content from a webpage.", method)
+			}
+		}
+	}
+
 	// Check for missing required parameters for filesystem tool
 	if functionName == "filesystem" {
 		missingParams := a.checkFilesystemParams(args)
@@ -299,15 +315,17 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 		}
 	}
 
-	// Start a tool spinner
-	toolName := tool.Name()
-	spinnerManager.StartToolSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
+	// The spinners will be managed by the ExecuteToolWithFeedback function
+	// So we just need to clear any existing spinners here
+	spinnerManager.TransitionToResponse()
 
-	// Execute the tool
+	// Execute the tool with feedback (will handle its own spinners)
 	result, err := tools.ExecuteToolWithFeedback(ctx, tool, args)
 
-	// Always stop the spinner after tool execution
+	// Always clear spinners after tool execution
 	spinnerManager.TransitionToResponse()
+
+	// Start the next thinking spinner
 	spinnerManager.StartThinkingSpinner("Continuing conversation...")
 
 	if err != nil {
