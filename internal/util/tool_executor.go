@@ -18,7 +18,7 @@ func ExecuteToolWithFeedback(ctx context.Context, tool core.Tool, args map[strin
 	toolName := tool.Name()
 
 	// Show tool being executed with spinner
-	spinner := NewSpinner(fmt.Sprintf("Executing %s tool...", toolName))
+	spinner := NewSpinner(fmt.Sprintf("[Tool: %s] executing...", toolName))
 	spinner.Start()
 
 	startTime := time.Now()
