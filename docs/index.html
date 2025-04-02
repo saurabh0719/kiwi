@@ -82,10 +82,10 @@ Docker is widely used for developing, shipping, and running applications in a co
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-terminal"></i>
+                        <i class="fas fa-bolt"></i>
                     </div>
-                    <h3>🚀 Multiple LLM Providers</h3>
-                    <p>Support for OpenAI and Claude APIs with customizable models</p>
+                    <h3>⚡ Execute Mode</h3>
+                    <p>Run one-off prompts for quick answers without starting a chat session</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
@@ -96,31 +96,17 @@ Docker is widely used for developing, shipping, and running applications in a co
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <h3>🔧 Shell Command Assistance</h3>
-                    <p>Get terminal command suggestions with confirmation before execution</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                    <h3>⚡ Execute Mode</h3>
-                    <p>Run one-off prompts for quick answers without starting a chat session</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-bug"></i>
-                    </div>
-                    <h3>🐞 Debug Mode</h3>
-                    <p>View token usage and response time statistics for optimization</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">
                         <i class="fas fa-tools"></i>
                     </div>
                     <h3>🛠️ Built-in Tools</h3>
                     <p>Access filesystem operations, shell commands, and system information</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3>🔧 Shell Command Assistance</h3>
+                    <p>Get terminal command suggestions with confirmation before execution</p>
                 </div>
             </div>
         </div>
@@ -150,31 +136,33 @@ Key benefits:
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>🔧 Shell Command Assistance</h3>
+                    <h3>💬 Interactive Chat</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi s "find all pdf files modified in the last week"
-----------------------------------------------------------------
+                        <pre><code>$ kiwi c
 
-Suggested command:
-find ~ -name "*.pdf" -type f -mtime -7
+Created new session: session_1743543868
+Chat session started. Type 'exit' to end the session.
+Using openai model: gpt-4o
+----------------------------------------
 
-This command will:
-- Search in your home directory (~)
-- Find all files with .pdf extension
-- Only include regular files (not directories)
-- Filter for files modified in the last 7 days
+You: What is HTML?
 
-----------------------------------------------------------------
+Kiwi: HTML, or Hypertext Markup Language, is the standard language used to create and design documents on the web. It structures web pages by using a system of tags and attributes to define elements such as headings, paragraphs, links, images, and other content types.
 
-Do you want to execute this command? (y/n): y
+### Key Features of HTML:
+- **Tags and Elements**: HTML uses tags to structure content. Tags are enclosed in angle brackets, like `<tag>`. Most elements have an opening tag and a closing tag, e.g., `<p>Content</p>` for paragraphs.
+- **Attributes**: Tags can have attributes that provide additional information about elements, such as `id`, `class`, or `style`.
+- **Hyperlinks**: HTML supports hyperlinks, allowing users to navigate between web pages using the `<a>` tag.
+- **Media**: HTML can embed images, videos, and audio using specific tags like `<img>`, `<video>`, and `<audio>`.
+- **Semantic Elements**: Newer versions of HTML introduce semantic elements like `<header>`, `<footer>`, `<article>`, and `<section>`, which provide more meaningful structure to a document.
 
-/home/user/Documents/report.pdf
-/home/user/Downloads/manual.pdf
-/home/user/Projects/presentation.pdf</code></pre>
+HTML is a cornerstone technology of the World Wide Web, working alongside CSS (Cascading Style Sheets) and JavaScript to create interactive and visually appealing web pages.
+
+[gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s</code></pre>
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>🛠️ Tool Calls</h3>
+                    <h3>🛠️ Built-in Tools</h3>
                     <div class="code-block">
                         <pre><code>$ kiwi "summarise the contents of this directory"
 🔧 [Tool: filesystem:list] executed in 0.000s
@@ -208,34 +196,91 @@ This structure suggests a Go-based project with version control and documentatio
                     </div>
                 </div>
                 <div class="example-card">
-                    <h3>💬 Interactive Chat</h3>
+                    <h3>🔧 Shell Command Assistance</h3>
                     <div class="code-block">
-                        <pre><code>$ kiwi c
+                        <pre><code>$ kiwi s "find all pdf files modified in the last week"
+----------------------------------------------------------------
 
-Created new session: session_1743543868
-Chat session started. Type 'exit' to end the session.
-Using openai model: gpt-4o
-----------------------------------------
+Suggested command:
+find ~ -name "*.pdf" -type f -mtime -7
 
-You: What is HTML?
+This command will:
+- Search in your home directory (~)
+- Find all files with .pdf extension
+- Only include regular files (not directories)
+- Filter for files modified in the last 7 days
 
-Kiwi: HTML, or Hypertext Markup Language, is the standard language used to create and design documents on the web. It structures web pages by using a system of tags and attributes to define elements such as headings, paragraphs, links, images, and other content types.
+----------------------------------------------------------------
 
-### Key Features of HTML:
-- **Tags and Elements**: HTML uses tags to structure content. Tags are enclosed in angle brackets, like `<tag>`. Most elements have an opening tag and a closing tag, e.g., `<p>Content</p>` for paragraphs.
-- **Attributes**: Tags can have attributes that provide additional information about elements, such as `id`, `class`, or `style`.
-- **Hyperlinks**: HTML supports hyperlinks, allowing users to navigate between web pages using the `<a>` tag.
-- **Media**: HTML can embed images, videos, and audio using specific tags like `<img>`, `<video>`, and `<audio>`.
-- **Semantic Elements**: Newer versions of HTML introduce semantic elements like `<header>`, `<footer>`, `<article>`, and `<section>`, which provide more meaningful structure to a document.
+Do you want to execute this command? (y/n): y
 
-HTML is a cornerstone technology of the World Wide Web, working alongside CSS (Cascading Style Sheets) and JavaScript to create interactive and visually appealing web pages.
+/home/user/Documents/report.pdf
+/home/user/Downloads/manual.pdf
+/home/user/Projects/presentation.pdf</code></pre>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <h3>🐞 Debug Mode</h3>
+                    <div class="code-block">
+                        <pre><code>$ kiwi -d "What is the capital of France?"
+----------------------------------------------------------------
 
-[gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s</code></pre>
+The capital of France is Paris. It's the country's largest city and serves as its political, cultural, and economic center. Paris is known for landmarks like the Eiffel Tower, Louvre Museum, Notre-Dame Cathedral, and Arc de Triomphe.
+
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 142 prompt + 57 completion = 199 total | Time: 0.86s
+Rate: $0.00025 for prompt + $0.00057 for completion = $0.00082 total</code></pre>
                     </div>
                 </div>
             </div>
             <div class="examples-footer">
                 <a href="https://github.com/saurabh0719/kiwi#usage" class="more-examples">View more examples in the docs</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="tools" class="installation">
+        <div class="container">
+            <h2>🛠️ Built-in Tools & Extensions</h2>
+            <div class="installation-options">
+                <div class="installation-card">
+                    <h3>📂 Filesystem Tool</h3>
+                    <p>Enables reading, writing, and listing files and directories:</p>
+                    <div class="code-block">
+                        <pre><code># Read a file
+kiwi "Read the content of my README.md file"
+
+# List directory contents
+kiwi "What files are in my current directory?"</code></pre>
+                    </div>
+                </div>
+                <div class="installation-card">
+                    <h3>🖥️ Shell Tool</h3>
+                    <p>Executes shell commands with your confirmation:</p>
+                    <div class="code-block">
+                        <pre><code># Find resource-intensive processes
+kiwi "List all processes using more than 10% CPU"
+
+# Create an archive
+kiwi "Create a compressed archive of my project"</code></pre>
+                    </div>
+                </div>
+                <div class="installation-card">
+                    <h3>🔌 Extending Kiwi</h3>
+                    <p>Developers can create custom tools by implementing the Tool interface:</p>
+                    <div class="code-block">
+                        <pre><code>// Custom tool implementation
+type MyCustomTool struct{}
+
+func (t *MyCustomTool) Name() string {
+    return "custom_tool"
+}
+
+// Register in your fork
+toolRegistry.Register(&MyCustomTool{})</code></pre>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

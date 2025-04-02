@@ -72,5 +72,5 @@ fi
 # Instructions for configuration
 echo -e "${BLUE}Next steps:${NC}"
 echo -e "1. Set your API key: ${GREEN}kiwi config set llm.api_key your-api-key-here${NC}"
-echo -e "2. Set your preferred provider: ${GREEN}kiwi config set llm.provider openai${NC} (or claude)"
+echo -e "2. Set your preferred model: ${GREEN}kiwi config set llm.model gpt-4o${NC}"
 echo -e "3. Try a sample query: ${GREEN}kiwi \"Explain what Kiwi can do\"${NC}" 

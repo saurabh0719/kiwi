@@ -5,7 +5,6 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/anthropics/anthropic-sdk-go v0.2.0-beta.3
 	github.com/fatih/color v1.18.0
 	github.com/sashabaranov/go-openai v1.38.1
 	github.com/spf13/cobra v1.8.0

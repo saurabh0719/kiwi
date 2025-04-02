@@ -42,13 +42,10 @@ sudo mv kiwi /usr/local/bin/
 
 ## ✨ Features
 
-- **Multiple LLM Providers**: Support for OpenAI and Claude APIs
-- **Interactive Chat**: Maintain context in ongoing conversations
-- **Shell Command Assistance**: Get terminal command suggestions with confirmation
 - **Execute Mode**: Run one-off prompts for quick answers
-- **Debug Mode**: View token usage and response time statistics
+- **Interactive Chat**: Maintain context in ongoing conversations
 - **Built-in Tools**: Filesystem operations, shell commands, system information
-- **Default Execute Mode**: Run prompts directly without specifying a command
+- **Shell Command Assistance**: Get terminal command suggestions with confirmation
 
 ## 📑 Table of Contents
 
@@ -56,10 +53,10 @@ sudo mv kiwi /usr/local/bin/
 * [Usage](#-usage)
   * [API Keys](#-api-keys)
   * [Execute Mode](#-execute-mode)
-  * [Shell Command Assistance](#-shell-command-assistance)
   * [Interactive Chat](#-interactive-chat)
-  * [Debug Mode](#-debug-mode)
   * [Tool Calls](#-tool-calls)
+  * [Shell Command Assistance](#-shell-command-assistance)
+  * [Debug Mode](#-debug-mode)
 * [Configuration](#-configuration)
 * [Built-in Tools](#-built-in-tools)
 * [Custom Tools](#-custom-tools)
@@ -74,10 +71,12 @@ sudo mv kiwi /usr/local/bin/
 Set your API keys using the config command:
 
 ```bash
-kiwi config set llm.provider openai  # or claude
-kiwi config set llm.model gpt-4o     # or claude-3-opus-20240229
+kiwi config set llm.provider openai
+kiwi config set llm.model gpt-4o
 kiwi config set llm.api_key your-api-key-here
 ```
+
+> **Note**: Currently only OpenAI is supported. Claude support will be added in a future update.
 
 ### ⚡ Execute Mode
 
@@ -112,37 +111,6 @@ $ kiwi e "What is version control?"
 # Full command
 $ kiwi execute "What is version control?"
 ```
-
-### 🔧 Shell Command Assistance
-
-Get help with shell commands:
-
-```bash
-# Shorthand command
-$ kiwi s "find all pdf files modified in the last week"
-----------------------------------------------------------------
-
-Suggested command:
-find ~ -name "*.pdf" -type f -mtime -7
-
-This command will:
-- Search in your home directory (~)
-- Find all files with .pdf extension
-- Only include regular files (not directories)
-- Filter for files modified in the last 7 days
-
-----------------------------------------------------------------
-
-Do you want to execute this command? (y/n): y
-
-/home/user/Documents/report.pdf
-/home/user/Downloads/manual.pdf
-/home/user/Projects/presentation.pdf
-```
-
-The tool will suggest a command and ask for confirmation before executing it.
-
-> **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
 
 ### 💬 Interactive Chat
 
@@ -182,37 +150,6 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 [gpt-4o] Tokens: 713 prompt + 268 completion = 981 total | Time: 5.82s
 ```
 
-### 🐞 Debug Mode
-
-Enable debug mode to see token usage and response time:
-
-```bash
-# Using command-line flag
-$ kiwi e "What is a smartphone" --debug
-
-# Or set it permanently in your config
-$ kiwi config set ui.debug true
-```
-
-Output with debug mode:
-
-```
-$ kiwi "Explain Docker in simple terms" --debug
-----------------------------------------------------------------
-
-Docker is like a shipping container for software. It packages your application and all its dependencies into a standardized unit (a container) that can run anywhere Docker is installed.
-
-Key benefits:
-- Consistency: Works the same in development and production
-- Isolation: Applications run in their own environment
-- Portability: Run on any system with Docker installed
-- Efficiency: Uses fewer resources than virtual machines
-
-----------------------------------------------------------------
-
-[gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
-```
-
 ### 🛠️ Tool Calls
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
@@ -249,6 +186,83 @@ This structure suggests a Go-based project with version control and documentatio
 [gpt-4o] Tokens: 1500 prompt + 236 completion = 1736 total | Time: 5.46s
 ```
 
+### 🔧 Shell Command Assistance
+
+Get help with shell commands:
+
+```bash
+# Shorthand command
+$ kiwi s "find all pdf files modified in the last week"
+----------------------------------------------------------------
+
+Suggested command:
+find ~ -name "*.pdf" -type f -mtime -7
+
+This command will:
+- Search in your home directory (~)
+- Find all files with .pdf extension
+- Only include regular files (not directories)
+- Filter for files modified in the last 7 days
+
+----------------------------------------------------------------
+
+Do you want to execute this command? (y/n): y
+
+/home/user/Documents/report.pdf
+/home/user/Downloads/manual.pdf
+/home/user/Projects/presentation.pdf
+```
+
+The tool will suggest a command and ask for confirmation before executing it.
+
+> **Note**: For complex commands with pipelines, use the execute mode (`kiwi e`) which provides better handling.
+
+### 🐞 Debug Mode
+
+Enable debug mode to see token usage and response time:
+
+```bash
+# Using command-line flag
+$ kiwi e "What is a smartphone" --debug
+
+# Or set it permanently in your config
+$ kiwi config set ui.debug true
+```
+
+Output with debug mode:
+
+```
+$ kiwi "Explain Docker in simple terms" --debug
+----------------------------------------------------------------
+
+Docker is like a shipping container for software. It packages your application and all its dependencies into a standardized unit (a container) that can run anywhere Docker is installed.
+
+Key benefits:
+- Consistency: Works the same in development and production
+- Isolation: Applications run in their own environment
+- Portability: Run on any system with Docker installed
+- Efficiency: Uses fewer resources than virtual machines
+
+----------------------------------------------------------------
+
+[gpt-4o] Tokens: 501 prompt + 162 completion = 663 total | Time: 3.92s
+```
+
+### 📺 Streaming Mode
+
+Control whether responses appear incrementally (streaming) or all at once:
+
+```bash
+# Using command-line flag
+$ kiwi "What is quantum computing?" --streaming=false  # Display complete answer at once
+
+# Or set it permanently in your config
+$ kiwi config set ui.streaming false  # Disable streaming for all commands
+```
+
+When streaming is enabled (default), you'll see the response being generated word by word.
+When disabled, the response will appear all at once after it's complete, which can be useful for scripting or when you prefer to see the finished response.
+
 ## ⚙️ Configuration
 
 Kiwi provides a simple configuration system:
@@ -259,147 +273,14 @@ kiwi config list
 
 # Get/set specific settings
 kiwi config get llm.provider
-kiwi config set llm.provider claude
-kiwi config set llm.model claude-3-opus-20240229
+kiwi config set llm.provider openai
+kiwi config set llm.model gpt-4o
 kiwi config set llm.api_key your_api_key
 kiwi config set ui.debug true
+kiwi config set ui.streaming true
 ```
 
-Config is stored in `~/.kiwi/config.yaml`:
+### UI Options
 
-```yaml
-llm:
-  provider: openai
-  model: gpt-4
-  api_key: your_api_key
-  safe_mode: true
-ui:
-  debug: false
-```
-
-## 🧰 Built-in Tools
-
-Kiwi comes with several built-in tools accessible in chat sessions:
-
-### 📂 Filesystem Tools
-```
-- list_files: <directory>       # List files in a directory
-- read_file: <file_path>        # Read the contents of a file
-- write_file: <file_path>       # Write content to a file
-- delete_file: <file_path>      # Delete a file
-```
-
-### 💻 Shell Tools
-```
-- run_command: <command>        # Execute a shell command
-- command_help: <command>       # Get help for a command
-```
-
-### 🖥️ System Info Tools
-```
-- system_info                   # Get OS information
-- disk_usage                    # Check disk space
-- memory_info                   # Get memory statistics
-```
-
-## 🔌 Custom Tools
-
-Kiwi can be extended with custom tools by implementing the core Tool interface:
-
-1. **Create a new tool package**:
-
-```go
-// mytool.go
-package mytool
-
-import (
-	"context"
-	"fmt"
-	"github.com/saurabh0719/kiwi/internal/tools/core"
-)
-
-type Tool struct {
-	name        string
-	description string
-	parameters  map[string]core.Parameter
-}
-
-func New() *Tool {
-	return &Tool{
-		name:        "mytool",
-		description: "A helpful description of what this tool does",
-		parameters: map[string]core.Parameter{
-			"param1": {
-				Type:        "string",
-				Description: "Description of parameter",
-				Required:    true,
-			},
-		},
-	}
-}
-
-func (t *Tool) Name() string { return t.name }
-func (t *Tool) Description() string { return t.description }
-func (t *Tool) Parameters() map[string]core.Parameter { return t.parameters }
-```
-
-2. **Register your tool**:
-
-```go
-// In tools.go
-import "github.com/saurabh0719/kiwi/internal/tools/mytool"
-
-func NewMyTool() core.Tool {
-	return mytool.New()
-}
-
-func RegisterStandardTools(registry *Registry) {
-	registry.Register(NewFileSystemTool())
-	registry.Register(NewShellTool())
-	registry.Register(NewSystemInfoTool())
-	registry.Register(NewMyTool()) // Your tool
-}
-```
-
-We welcome contributions to expand Kiwi's capabilities with new tools! Some ideas for tools:
-- Weather information
-- Web search
-- Calendar integration
-- Note-taking
-- Translation
-
-## 📁 Project Structure
-
-```
-kiwi/
-├── cmd/kiwi/         # Main entry point
-├── internal/
-│   ├── cli/          # CLI commands implementation
-│   ├── config/       # Configuration management
-│   ├── input/        # User input handling
-│   ├── llm/          # LLM provider interfaces
-│   ├── session/      # Chat session management
-│   ├── tools/        # Built-in tools
-│   └── util/         # Utility functions
-```
-
-## 🤝 Contributing
-
-We welcome contributions from developers of all skill levels!
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Ways to contribute:
-- Add new tools to expand functionality
-- Improve documentation
-- Fix bugs or improve existing features
-- Add support for new LLM providers
-- Enhance UI/UX in the terminal
-
-## 📄 License
-
-This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
+- **Debug Mode** (`ui.debug`): When enabled, shows token usage, response time, and API cost statistics after each response
+- **Streaming Mode** (`ui.streaming`): Controls whether responses are displayed incrementally (true) or all at once when completed (false)

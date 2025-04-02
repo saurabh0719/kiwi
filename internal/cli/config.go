@@ -9,9 +9,13 @@ import (
 )
 
 var (
-	getCmd  *cobra.Command
-	setCmd  *cobra.Command
-	listCmd *cobra.Command
+	configCmd          *cobra.Command
+	listCmd            *cobra.Command
+	getCmd             *cobra.Command
+	setCmd             *cobra.Command
+	configSetOpenAICmd *cobra.Command
+	configSetSerperCmd *cobra.Command
+	configListCmd      *cobra.Command
 )
 
 func initConfigCmd() {
@@ -67,10 +71,34 @@ Examples:
 		RunE:  handleConfigSet,
 	}
 
+	// Set OpenAI API key command
+	configSetOpenAICmd = &cobra.Command{
+		Use:   "set-openai-key",
+		Short: "Set OpenAI API key",
+		Long:  "Set OpenAI API key for Kiwi",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return configSetOpenAIKey(cmd, args)
+		},
+	}
+
+	// Set Serper API key command
+	configSetSerperCmd = &cobra.Command{
+		Use:   "set-serper-key",
+		Short: "Set Serper API key for web search",
+		Long:  "Set Serper API key to enable web search functionality in Kiwi",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return configSetSerperKey(cmd, args)
+		},
+	}
+
 	// Add subcommands to config
 	configCmd.AddCommand(listCmd)
 	configCmd.AddCommand(getCmd)
 	configCmd.AddCommand(setCmd)
+	configCmd.AddCommand(configSetOpenAICmd)
+	configCmd.AddCommand(configSetSerperCmd)
 }
 
 func handleConfigList(cmd *cobra.Command, args []string) error {
@@ -222,4 +250,87 @@ func maskString(input string) string {
 
 	// Show the first 4 and last 4 characters, mask the rest
 	return input[:4] + "..." + input[len(input)-4:]
+}
+
+// configSetOpenAIKey sets the OpenAI API key
+func configSetOpenAIKey(cmd *cobra.Command, args []string) error {
+	// Load existing config
+	cfg, err := config.Load(cmd)
+	if err != nil {
+		return fmt.Errorf("Failed to load config: %v", err)
+	}
+
+	// Set the API key
+	cfg.LLM.APIKey = args[0]
+
+	// Save the config
+	if err := cfg.Save(); err != nil {
+		return fmt.Errorf("Failed to save config: %v", err)
+	}
+
+	fmt.Println("OpenAI API key set successfully.")
+	return nil
+}
+
+// configSetSerperKey sets the Serper API key
+func configSetSerperKey(cmd *cobra.Command, args []string) error {
+	// Load existing config
+	cfg, err := config.Load(cmd)
+	if err != nil {
+		return fmt.Errorf("Failed to load config: %v", err)
+	}
+
+	// Set the API key
+	cfg.Tools.SerperAPIKey = args[0]
+
+	// Save the config
+	if err := cfg.Save(); err != nil {
+		return fmt.Errorf("Failed to save config: %v", err)
+	}
+
+	fmt.Println("Serper API key set successfully. Web search is now available.")
+	return nil
+}
+
+// configList lists all current configuration settings
+func configList(cmd *cobra.Command, args []string) error {
+	// Load existing config
+	cfg, err := config.Load(cmd)
+	if err != nil {
+		return fmt.Errorf("Failed to load config: %v", err)
+	}
+
+	// Print configuration values
+	fmt.Println("Current Configuration:")
+	fmt.Println("----------------------")
+	fmt.Printf("LLM Provider: %s\n", cfg.LLM.Provider)
+	fmt.Printf("LLM Model: %s\n", cfg.LLM.Model)
+
+	// Show API keys as masked values for security
+	if cfg.LLM.APIKey != "" {
+		fmt.Printf("OpenAI API Key: %s\n", maskAPIKey(cfg.LLM.APIKey))
+	} else {
+		fmt.Printf("OpenAI API Key: [not set]\n")
+	}
+
+	if cfg.Tools.SerperAPIKey != "" {
+		fmt.Printf("Serper API Key: %s\n", maskAPIKey(cfg.Tools.SerperAPIKey))
+		fmt.Println("Web Search: Enabled")
+	} else {
+		fmt.Printf("Serper API Key: [not set]\n")
+		fmt.Println("Web Search: Disabled")
+	}
+
+	fmt.Printf("Debug Mode: %v\n", cfg.UI.Debug)
+	fmt.Printf("Streaming Mode: %v\n", cfg.UI.Streaming)
+
+	return nil
+}
+
+// maskAPIKey masks an API key for display, showing only first and last 4 characters
+func maskAPIKey(key string) string {
+	if len(key) <= 8 {
+		return strings.Repeat("*", len(key))
+	}
+	return key[:4] + strings.Repeat("*", len(key)-8) + key[len(key)-4:]
 }
