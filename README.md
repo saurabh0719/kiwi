@@ -8,7 +8,7 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 [![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=flat&logo=go)](https://github.com/saurabh0719/kiwi)
 
 
-![Image](https://github.com/user-attachments/assets/682a1f30-62b1-471f-9dd7-348c661dc4ed)
+![Image](https://github.com/user-attachments/assets/6ab73b63-4f7b-4c8e-8237-18b5a553c0c7)
 
 <span id="installation"></span>
 ## 📦 Installation
@@ -110,7 +110,7 @@ Docker is widely used for developing, shipping, and running applications in a co
 
 This example shows the timing breakdown in execute mode, demonstrating that for simple queries without tool calls, almost all the time is spent in LLM processing.
 
-![Image](https://github.com/user-attachments/assets/85527dba-6e84-41f5-9e3f-e98b72814a00)
+![Image](https://github.com/user-attachments/assets/aa786445-f460-4147-8fc3-8049e3639abd)
 
 
 <span id="interactive-assistant"></span>
@@ -151,14 +151,14 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 
 In the interactive assistant mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
 
-![Image](https://github.com/user-attachments/assets/c7e32bd8-22b6-4141-814f-554c0d3db87b)
+![Image](https://github.com/user-attachments/assets/e57774c3-638b-4fe3-8d36-f0562c0c2c0e)
 
 <span id="tool-calls"></span>
 ### 🛠️ Tool Calls
 
 Kiwi can use built-in tools to perform tasks like interacting with the filesystem:
 
-![Image](https://github.com/user-attachments/assets/6d5ea17c-b49a-4dc9-8c6f-344950323853)
+![Image](https://github.com/user-attachments/assets/a8126da2-2644-4ba5-ad75-593a18c70f11)
 
 ```bash
 ...
