@@ -259,13 +259,13 @@ func processStream(adapter llm.Adapter, messages []llm.Message, userPrompt strin
 			fmt.Print(chunk)
 			return nil
 		},
-		llm.DefaultToolExecutionDetector,
+		tools.DefaultExecutionDetector,
 	)
 
 	// Handle null content errors gracefully using shared handler
 	if err != nil {
 		// Check if this is a null content error that can be gracefully handled
-		if llm.HandleNullContentError(err, toolCallDetected) {
+		if tools.HandleNullContentError(err, toolCallDetected) {
 			// If we detected a tool call but got null content, this is likely after a successful
 			// command execution. We'll print a fallback message.
 			if *isFirstResponse {

@@ -89,13 +89,13 @@ Remember that users in execute mode typically want quick, actionable information
 				fmt.Print(chunk)
 				return nil
 			},
-			llm.DefaultToolExecutionDetector,
+			tools.DefaultExecutionDetector,
 		)
 
 		// Handle specific error cases gracefully
 		if err != nil {
 			// Use shared error handler for null content after tool execution
-			if llm.HandleNullContentError(err, toolExecuted) {
+			if tools.HandleNullContentError(err, toolExecuted) {
 				// We'll print the response divider and continue as normal
 				if completeResponse == "" {
 					fmt.Println("\nCommand executed successfully.")
@@ -127,13 +127,13 @@ Remember that users in execute mode typically want quick, actionable information
 			context.Background(),
 			adapter,
 			messages,
-			llm.DefaultToolExecutionDetector,
+			tools.DefaultExecutionDetector,
 		)
 
 		// Handle null content errors in non-streaming mode
 		if err != nil {
 			// Use shared error handler
-			if llm.HandleNullContentError(err, toolExecuted) {
+			if tools.HandleNullContentError(err, toolExecuted) {
 				// Print a generic success message
 				util.PrepareForResponse(spinnerManager)
 				fmt.Println("Command executed successfully.")
