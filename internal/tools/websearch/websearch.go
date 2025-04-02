@@ -71,7 +71,7 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 	// Extract method parameter
 	method, ok := args["method"].(string)
 	if !ok || method == "" {
-		return result, fmt.Errorf("method must be a non-empty string ('visit')")
+		return result, fmt.Errorf("method must be a non-empty string ('visit' is the only supported method)")
 	}
 	result.ToolMethod = method
 
@@ -80,15 +80,15 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 	// Extract query parameter
 	query, ok := args["query"].(string)
 	if !ok || query == "" {
-		return result, fmt.Errorf("query must be a non-empty string")
+		return result, fmt.Errorf("query must be a non-empty string (should be a URL for the 'visit' method)")
 	}
 
 	result.AddStep(fmt.Sprintf("URL requested: %s", query))
 
 	// Only support the 'visit' method - fail fast with a clear message
 	if strings.ToLower(method) != "visit" {
-		result.AddStep(fmt.Sprintf("Method '%s' is not supported (only 'visit' is supported)", method))
-		return result, fmt.Errorf("unsupported method: '%s'. The only supported method is 'visit'", method)
+		result.AddStep(fmt.Sprintf("Method '%s' is not supported - only 'visit' can be used", method))
+		return result, fmt.Errorf("unsupported method: '%s'. The only supported method is 'visit' which requires a valid URL", method)
 	}
 
 	// Validate URL

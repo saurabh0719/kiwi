@@ -22,19 +22,24 @@ func New() *Tool {
 	parameters := map[string]core.Parameter{
 		"operation": {
 			Type:        "string",
-			Description: "Operation to perform (list or read)",
+			Description: "Operation to perform: 'list' (list directory contents), 'read' (read existing file), 'write' (write to file, creates it if doesn't exist), 'delete' (delete a file)",
 			Required:    true,
 		},
 		"path": {
 			Type:        "string",
-			Description: "Path to file or directory",
+			Description: "Path to file or directory. For 'write' operations, this is the file to write to (will be created if it doesn't exist).",
 			Required:    true,
+		},
+		"content": {
+			Type:        "string",
+			Description: "Content to write (for write operation only). For example, 'content': 'Hello, world!' will write that text to the file.",
+			Required:    false,
 		},
 	}
 
 	return &Tool{
 		name:        "filesystem",
-		description: "Provides file system operations like listing files and reading file contents",
+		description: "Provides file system operations like listing files, reading from existing files, writing to files (creates files if they don't exist), and deleting files. For writing to files, use operation='write', path='filename.txt', and content='text to write'. Example: To create a file called notes.txt with content 'Meeting notes', use these parameters: {\"operation\": \"write\", \"path\": \"notes.txt\", \"content\": \"Meeting notes\"}.",
 		parameters:  parameters,
 	}
 }
@@ -97,6 +102,30 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 
 	result.AddStep(fmt.Sprintf("Path safety check passed"))
 
+	// Additional validation based on operation type
+	switch operation {
+	case "write":
+		// For write operations, ensure content parameter is present
+		contentVal, hasContent := args["content"]
+		if !hasContent || contentVal == nil {
+			result.AddStep("Error: Missing required 'content' parameter for write operation")
+			return result, fmt.Errorf("content parameter is required for write operation")
+		}
+
+		// Validate content is a string
+		_, ok := contentVal.(string)
+		if !ok {
+			result.AddStep("Error: Content must be a string")
+			return result, fmt.Errorf("content must be a string")
+		}
+	case "read":
+		// For read operations, check if the file exists first
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			result.AddStep(fmt.Sprintf("Error: File '%s' does not exist", path))
+			return result, fmt.Errorf("file does not exist: %s. Use 'write' operation first to create it", path)
+		}
+	}
+
 	var err error
 	var output string
 
@@ -121,7 +150,7 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 			result.AddStep(fmt.Sprintf("Successfully read %s (%d lines, %d bytes)", path, lineCount, len(output)))
 		}
 	case "write":
-		content, _ := args["content"].(string)
+		content := args["content"].(string)
 		contentLength := len(content)
 		result.AddStep(fmt.Sprintf("Writing %d bytes to file: %s", contentLength, path))
 		output, err = t.writeFile(path, content)
@@ -140,7 +169,7 @@ func (t *Tool) Execute(ctx context.Context, args map[string]interface{}) (core.T
 		}
 	default:
 		result.AddStep(fmt.Sprintf("Unknown operation requested: %s", operation))
-		err = fmt.Errorf("unknown operation: %s", operation)
+		err = fmt.Errorf("unknown operation: %s, supported operations are: list, read, write, delete", operation)
 	}
 
 	if err != nil {
@@ -179,7 +208,7 @@ func (t *Tool) readFile(path string) (string, error) {
 
 	// Check if the file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return "", fmt.Errorf("file does not exist: %s", path)
+		return "", fmt.Errorf("file does not exist: %s. Use 'write' operation first to create it", path)
 	}
 
 	// Read the file

@@ -292,29 +292,6 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 		return fmt.Sprintf("Error parsing arguments: %v", err)
 	}
 
-	// Validate websearch tool parameters
-	// We need to handle this specially to avoid multiple retries with invalid methods
-	if functionName == "websearch" {
-		if method, exists := args["method"].(string); exists {
-			if method != "visit" {
-				// Return a clear error message for unsupported methods
-				spinnerManager.TransitionToResponse()
-				return fmt.Sprintf("The websearch tool only supports the 'visit' method, not '%s'. Please use 'visit' with a URL to retrieve content from a webpage.", method)
-			}
-		}
-	}
-
-	// Check for missing required parameters for filesystem tool
-	if functionName == "filesystem" {
-		missingParams := a.checkFilesystemParams(args)
-		if len(missingParams) > 0 {
-			// Stop any spinner if parameters are missing
-			spinnerManager.TransitionToResponse()
-			return fmt.Sprintf("Error: Missing required parameters for function %s: %v. Please provide all required parameters.",
-				functionName, missingParams)
-		}
-	}
-
 	// The spinners will be managed by the ExecuteToolWithFeedback function
 	// So we just need to clear any existing spinners here
 	spinnerManager.TransitionToResponse()
@@ -333,23 +310,6 @@ func (a *Adapter) executeToolCall(ctx context.Context, functionName, functionArg
 	}
 
 	return result
-}
-
-// checkFilesystemParams checks if the filesystem tool has all required parameters
-func (a *Adapter) checkFilesystemParams(args map[string]interface{}) []string {
-	missingParams := []string{}
-
-	// Check for required operation parameter
-	if _, exists := args["operation"]; !exists {
-		missingParams = append(missingParams, "operation")
-	}
-
-	// Check for required path parameter
-	if _, exists := args["path"]; !exists {
-		missingParams = append(missingParams, "path")
-	}
-
-	return missingParams
 }
 
 // ChatStream sends a message to OpenAI and streams the response tokens to the handler function

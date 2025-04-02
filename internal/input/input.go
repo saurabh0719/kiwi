@@ -100,3 +100,29 @@ func ReadPrompt(prompt string) (string, error) {
 	}
 	return scanner.Text(), nil
 }
+
+// IsInputPiped checks if input is being piped from stdin rather than coming from an interactive terminal
+// Returns true if input is piped, and the piped content as a string
+func IsInputPiped() (bool, string) {
+	// Check if stdin is a pipe
+	stat, _ := os.Stdin.Stat()
+	isPipe := (stat.Mode() & os.ModeCharDevice) == 0
+
+	// If it is a pipe, read all input
+	if isPipe {
+		scanner := bufio.NewScanner(os.Stdin)
+		var input strings.Builder
+
+		for scanner.Scan() {
+			input.WriteString(scanner.Text())
+			input.WriteString("\n")
+		}
+
+		// Return the input without the final newline
+		inputStr := input.String()
+		return true, strings.TrimSpace(inputStr)
+	}
+
+	// Not a pipe, return empty string
+	return false, ""
+}

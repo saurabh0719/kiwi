@@ -58,6 +58,24 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 	util.InfoColor.Printf("Using %s model: %s\n", adapter.GetProvider(), adapter.GetModel())
 	util.PrintChatDivider()
 
+	// Check if input is being piped in (non-interactive mode)
+	isPiped, singleInput := input.IsInputPiped()
+
+	// If we're in piped mode, process the single input and exit
+	if isPiped {
+		if singleInput == "" {
+			return fmt.Errorf("no input provided in non-interactive mode")
+		}
+
+		fmt.Println()
+		util.UserColor.Print("You: ")
+		fmt.Println(singleInput)
+
+		// Process a single message and then exit
+		return processChatMessage(sessionMgr, *sess, *cfg, adapter, singleInput)
+	}
+
+	// Interactive chat loop
 	for {
 		fmt.Println()
 		util.UserColor.Print("You: ")
@@ -78,20 +96,34 @@ func startNewChat(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 
-		if err := sessionMgr.AddMessage(sess.ID, "user", userInput); err != nil {
-			return fmt.Errorf("failed to add user message: %w", err)
+		if err := processChatMessage(sessionMgr, *sess, *cfg, adapter, userInput); err != nil {
+			return err
 		}
 
+		// Update the session after processing
 		sess, err = sessionMgr.GetSession(sess.ID)
 		if err != nil {
 			return fmt.Errorf("failed to get updated session: %w", err)
 		}
+	}
+}
 
-		var messages []llm.Message
-		if len(sess.Messages) == 1 {
-			messages = append(messages, llm.Message{
-				Role: "system",
-				Content: `You are Kiwi in chat mode. In this mode, you maintain conversation context and provide thoughtful, helpful responses to user queries over time.
+// processChatMessage handles a single message in the chat, either in interactive or non-interactive mode
+func processChatMessage(sessionMgr *session.Manager, sess session.Session, cfg config.Config, adapter core.Adapter, userInput string) error {
+	if err := sessionMgr.AddMessage(sess.ID, "user", userInput); err != nil {
+		return fmt.Errorf("failed to add user message: %w", err)
+	}
+
+	updatedSess, err := sessionMgr.GetSession(sess.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get updated session: %w", err)
+	}
+
+	var messages []llm.Message
+	if len(updatedSess.Messages) == 1 {
+		messages = append(messages, llm.Message{
+			Role: "system",
+			Content: `You are Kiwi in chat mode. In this mode, you maintain conversation context and provide thoughtful, helpful responses to user queries over time.
 
 For this chat session:
 - Retain context from previous messages
@@ -106,91 +138,92 @@ When interacting with users:
 - Adapt your technical level to match the user's demonstrated expertise
 
 Remember this is an ongoing conversation where context builds over time.`,
-			})
-		}
+		})
+	}
 
-		for _, msg := range sess.Messages {
-			messages = append(messages, llm.Message{
-				Role:    msg.Role,
-				Content: msg.Content,
-			})
-		}
+	for _, msg := range updatedSess.Messages {
+		messages = append(messages, llm.Message{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
 
-		// Initialize a complete response string to store the entire response
-		completeResponse := ""
+	// Initialize a complete response string to store the entire response
+	completeResponse := ""
 
-		// Define a stream handler for handling the streaming response
-		streamHandler := func(chunk string) error {
-			// Print the chunk without a newline
-			fmt.Print(chunk)
-			// Append the chunk to the complete response
-			completeResponse += chunk
-			return nil
-		}
+	// Define a stream handler for handling the streaming response
+	streamHandler := func(chunk string) error {
+		// Print the chunk without a newline
+		fmt.Print(chunk)
+		// Append the chunk to the complete response
+		completeResponse += chunk
+		return nil
+	}
 
-		// Start a spinner that will stop once we get the first token
-		// Using the global spinner manager
-		spinnerManager := util.GetGlobalSpinnerManager()
-		spinnerManager.StartThinkingSpinner("Thinking...")
+	// Start a spinner that will stop once we get the first token
+	// Using the global spinner manager
+	spinnerManager := util.GetGlobalSpinnerManager()
+	spinnerManager.StartThinkingSpinner("Thinking...")
 
-		// Print the assistant prompt
-		fmt.Println()
+	// Print the assistant prompt
+	fmt.Println()
 
-		// Track time for metrics
-		startTime := time.Now()
-		var metrics *core.ResponseMetrics
+	// Track time for metrics
+	startTime := time.Now()
+	var metrics *core.ResponseMetrics
 
-		if cfg.UI.Streaming {
-			// Use streaming API with the handler
-			metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
-				// On first chunk, make sure no spinner is active
-				if completeResponse == "" {
-					// Clear spinner before printing any output
-					util.PrepareForResponse(spinnerManager)
-					// Print the Kiwi prefix
-					util.AssistantColor.Print("\nKiwi: ")
-				}
-
-				return streamHandler(chunk)
-			})
-		} else {
-			// Use non-streaming API for complete response at once
-			var response string
-			response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
-
-			// Clear spinner before printing any output
-			util.PrepareForResponse(spinnerManager)
-			// Print the Kiwi prefix
-			util.AssistantColor.Print("\nKiwi: ")
-
-			// Print the complete response
-			fmt.Print(response)
-			completeResponse = response
-		}
-
-		// At the end of the function, after processing the response
-		// No need to stop spinners or clear line again, as it's already done before printing the response
-		// Just print a newline after the response
-		fmt.Println()
-
-		if err != nil {
-			return fmt.Errorf("failed to get streaming response: %w", err)
-		}
-
-		// If metrics is nil (can happen if the stream fails), create empty metrics
-		if metrics == nil {
-			metrics = &core.ResponseMetrics{
-				ResponseTime: time.Since(startTime),
+	if cfg.UI.Streaming {
+		// Use streaming API with the handler
+		metrics, err = adapter.ChatStream(context.Background(), messages, func(chunk string) error {
+			// On first chunk, make sure no spinner is active
+			if completeResponse == "" {
+				// Clear spinner before printing any output
+				util.PrepareForResponse(spinnerManager)
+				// Print the Kiwi prefix
+				util.AssistantColor.Print("\nKiwi: ")
 			}
-		}
 
-		if cfg.UI.Debug {
-			core.PrintResponseMetrics(metrics, adapter.GetModel())
-			util.PrintChatDivider()
-		}
+			return streamHandler(chunk)
+		})
+	} else {
+		// Use non-streaming API for complete response at once
+		var response string
+		response, metrics, err = adapter.ChatWithMetrics(context.Background(), messages)
 
-		if err := sessionMgr.AddMessage(sess.ID, "assistant", completeResponse); err != nil {
-			return fmt.Errorf("failed to add assistant message: %w", err)
+		// Clear spinner before printing any output
+		util.PrepareForResponse(spinnerManager)
+		// Print the Kiwi prefix
+		util.AssistantColor.Print("\nKiwi: ")
+
+		// Print the complete response
+		fmt.Print(response)
+		completeResponse = response
+	}
+
+	// At the end of the function, after processing the response
+	// No need to stop spinners or clear line again, as it's already done before printing the response
+	// Just print a newline after the response
+	fmt.Println()
+
+	if err != nil {
+		return fmt.Errorf("failed to get response: %w", err)
+	}
+
+	// If metrics is nil (can happen if the stream fails), create empty metrics
+	if metrics == nil {
+		metrics = &core.ResponseMetrics{
+			ResponseTime: time.Since(startTime),
 		}
 	}
+
+	if cfg.UI.Debug {
+		core.PrintResponseMetrics(metrics, adapter.GetModel())
+		util.PrintChatDivider()
+	}
+
+	if err := sessionMgr.AddMessage(sess.ID, "assistant", completeResponse); err != nil {
+		return fmt.Errorf("failed to add assistant message: %w", err)
+	}
+
+	return nil
 }
