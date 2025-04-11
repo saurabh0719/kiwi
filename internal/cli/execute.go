@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/saurabh0719/kiwi/internal/config"
@@ -38,6 +39,7 @@ Since this is a single interaction:
 - Don't ask clarifying questions - do your best with the information provided
 - Optimize for efficiency and immediate utility
 - Format responses for terminal readability
+- Always use Markdown for your responses to enhance readability
 
 When handling shell commands:
 - ALWAYS use the shell tool to execute commands when users ask for file operations, git commands, or system tasks
@@ -50,7 +52,14 @@ For technical content:
 - Format output to be easily read in terminal environments
 - Focus on practical solutions over background information
 
-Remember that users in execute mode typically want quick, actionable information without ongoing conversation.`,
+As a developer-focused CLI tool:
+- Interpret commands in a development context first and foremost
+- Recognize common developer intentions and take direct action when appropriate
+- For requests like "build", "run", "test", or similar operations, explore the project structure first, then execute relevant commands
+- Understand project conventions and standard development workflows without requiring explicit details
+- When executing developer operations, take initiative to determine the appropriate command based on project type
+
+Remember that users in execute mode typically want quick, actionable information without ongoing conversation, and expect you to understand the development context of their requests.`,
 		},
 		{
 			Role:    "user",
@@ -73,6 +82,13 @@ Remember that users in execute mode typically want quick, actionable information
 	var completeResponse string
 	var toolExecuted bool
 
+	// For buffering partial chunks in streaming mode
+	var responseBuffer strings.Builder
+	const flushThreshold = 100
+
+	// Check if we should render markdown
+	shouldRenderMarkdown := util.ShouldRenderMarkdown(cfg.UI.RenderMarkdown)
+
 	if cfg.UI.Streaming {
 		// Use our shared streaming handler with tool detection
 		metrics, toolExecuted, completeResponse, err = llm.ProcessStreamWithToolDetection(
@@ -85,12 +101,32 @@ Remember that users in execute mode typically want quick, actionable information
 					// Clear spinner before printing any output
 					util.PrepareForResponse(spinnerManager)
 				}
-				// Print the chunk without a newline
-				fmt.Print(chunk)
+
+				// Collect the chunk in our buffer
+				responseBuffer.WriteString(chunk)
+
+				// If we've collected enough text or the chunk ends with a newline,
+				// render and flush the buffer
+				if responseBuffer.Len() >= flushThreshold ||
+					strings.HasSuffix(chunk, "\n") ||
+					strings.HasSuffix(chunk, "\r") {
+
+					// Render and print the buffered content
+					fmt.Print(util.RenderMarkdown(responseBuffer.String(), shouldRenderMarkdown))
+
+					// Clear the buffer for the next chunks
+					responseBuffer.Reset()
+				}
+
 				return nil
 			},
 			tools.DefaultExecutionDetector,
 		)
+
+		// Flush any remaining content in the buffer
+		if responseBuffer.Len() > 0 {
+			fmt.Print(util.RenderMarkdown(responseBuffer.String(), shouldRenderMarkdown))
+		}
 
 		// Handle specific error cases gracefully
 		if err != nil {
@@ -161,8 +197,8 @@ Remember that users in execute mode typically want quick, actionable information
 		// Clear spinner before printing any output
 		util.PrepareForResponse(spinnerManager)
 
-		// Print the complete response
-		fmt.Println(response)
+		// Print the complete response with Markdown rendering
+		fmt.Println(util.RenderMarkdown(response, shouldRenderMarkdown))
 		completeResponse = response
 	}
 

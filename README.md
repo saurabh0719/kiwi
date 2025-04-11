@@ -13,12 +13,32 @@ A command-line interface (CLI) for interacting with Large Language Models (LLMs)
 <span id="installation"></span>
 ## 📦 Installation
 
-### Quick Install (Linux and macOS)
+### Download Pre-built Binaries
+
+You can download the latest pre-built binaries for your platform from the [GitHub Releases](https://github.com/saurabh0719/kiwi/releases) page.
+
+#### Linux (x86_64)
 
 ```bash
-# Install with a single command
-curl -fsSL https://raw.githubusercontent.com/saurabh0719/kiwi/main/install.sh | bash
+# Download the latest release
+curl -OL https://github.com/saurabh0719/kiwi/releases/latest/download/kiwi-linux-amd64
+chmod +x kiwi-linux-amd64
+sudo mv kiwi-linux-amd64 /usr/local/bin/kiwi
 ```
+
+#### macOS (x86_64)
+
+```bash
+# Download the latest release 
+curl -OL https://github.com/saurabh0719/kiwi/releases/latest/download/kiwi-macos-amd64
+chmod +x kiwi-macos-amd64
+sudo mv kiwi-macos-amd64 /usr/local/bin/kiwi
+```
+
+#### Windows (x86_64)
+
+Download the `kiwi-windows-amd64.exe` file from the [Releases page](https://github.com/saurabh0719/kiwi/releases/latest), rename it to `kiwi.exe` and add it to your PATH.
+
 
 ### Build from Source
 
@@ -54,6 +74,7 @@ sudo mv kiwi /usr/local/bin/
   * [API Keys](#api-keys)
   * [Execute Mode](#execute-mode)
   * [Interactive Assistant](#interactive-assistant)
+  * [Session Management](#session-management)
   * [Tool Calls](#tool-calls)
   * [Built-in Tools](#built-in-tools)
   * [Shell Commands](#terminal-command-assistance)
@@ -147,6 +168,49 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
 ```
 
 In the interactive assistant mode, the timing breakdown shows that most of the time (5.74s) is spent in LLM processing, with minimal overhead (0.08s) and no tool usage for this simple query.
+
+<span id="session-management"></span>
+### 💾 Session Management
+
+Kiwi automatically saves assistant sessions, allowing you to continue conversations later. The application stores up to 10 recent sessions.
+
+You can manage your sessions with the following commands:
+
+- **List available sessions**: 
+  ```
+  kiwi -s
+  ```
+  or 
+  ```
+  kiwi -s -l
+  ```
+
+- **Create a new named session**:
+  ```
+  kiwi -s -n my_project
+  ```
+  (You can specify the name directly after the `-n` flag)
+
+- **Continue a session**:
+  ```
+  kiwi -s -o 1234567
+  ```
+  (You can use just the numeric ID without the "session_" prefix)
+
+- **Delete a session**:
+  ```
+  kiwi -s -d 1234567
+  ```
+  (You can use just the numeric ID without the "session_" prefix)
+
+- **Clear all sessions**:
+  ```
+  kiwi -s -C
+  ```
+
+When continuing a session, Kiwi will display the last messages from your conversation to help you maintain context.
+
+Session summaries are automatically generated based on conversation content.
 
 ![Image](https://github.com/user-attachments/assets/e57774c3-638b-4fe3-8d36-f0562c0c2c0e)
 

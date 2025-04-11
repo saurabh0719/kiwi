@@ -35,7 +35,8 @@ Examples:
   kiwi config set llm.api_key your_api_key
   kiwi config set llm.safe_mode true
   kiwi config set ui.debug true
-  kiwi config set ui.streaming true`,
+  kiwi config set ui.streaming true
+  kiwi config set ui.render_markdown true`,
 		// Run list command by default when no subcommand is specified
 		RunE: handleConfigList,
 	}
@@ -103,6 +104,7 @@ func handleConfigList(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("  ui.debug: %t\n", cfg.UI.Debug)
 	fmt.Printf("  ui.streaming: %t\n", cfg.UI.Streaming)
+	fmt.Printf("  ui.render_markdown: %t\n", cfg.UI.RenderMarkdown)
 
 	return nil
 }
@@ -132,6 +134,8 @@ func handleConfigGet(cmd *cobra.Command, args []string) error {
 		fmt.Println(cfg.UI.Debug)
 	case "ui.streaming":
 		fmt.Println(cfg.UI.Streaming)
+	case "ui.render_markdown":
+		fmt.Println(cfg.UI.RenderMarkdown)
 	default:
 		// Check if it's an option
 		if strings.HasPrefix(key, "llm.options.") {
@@ -158,17 +162,25 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
+	var oldValue interface{}
+	newValue := value
+
 	switch key {
 	case "llm.provider":
+		oldValue = cfg.LLM.Provider
 		if value != "openai" {
 			return fmt.Errorf("provider must be 'openai' (Claude support will be added in the future)")
 		}
 		cfg.LLM.Provider = value
 	case "llm.model":
+		oldValue = cfg.LLM.Model
 		cfg.LLM.Model = value
 	case "llm.api_key":
+		oldValue = "<hidden>"
 		cfg.LLM.APIKey = value
+		newValue = "<hidden>"
 	case "llm.safe_mode":
+		oldValue = cfg.LLM.SafeMode
 		if value == "true" {
 			cfg.LLM.SafeMode = true
 		} else if value == "false" {
@@ -177,6 +189,7 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("safe_mode must be 'true' or 'false'")
 		}
 	case "ui.debug":
+		oldValue = cfg.UI.Debug
 		if value == "true" {
 			cfg.UI.Debug = true
 		} else if value == "false" {
@@ -185,12 +198,22 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("debug must be 'true' or 'false'")
 		}
 	case "ui.streaming":
+		oldValue = cfg.UI.Streaming
 		if value == "true" {
 			cfg.UI.Streaming = true
 		} else if value == "false" {
 			cfg.UI.Streaming = false
 		} else {
 			return fmt.Errorf("streaming must be 'true' or 'false'")
+		}
+	case "ui.render_markdown":
+		oldValue = cfg.UI.RenderMarkdown
+		if value == "true" {
+			cfg.UI.RenderMarkdown = true
+		} else if value == "false" {
+			cfg.UI.RenderMarkdown = false
+		} else {
+			return fmt.Errorf("render_markdown must be 'true' or 'false'")
 		}
 	default:
 		// Check if it's an option
@@ -199,6 +222,7 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 			if cfg.LLM.Options == nil {
 				cfg.LLM.Options = make(map[string]string)
 			}
+			oldValue = cfg.LLM.Options[optKey]
 			cfg.LLM.Options[optKey] = value
 		} else {
 			return fmt.Errorf("unknown config key: %s", key)
@@ -210,7 +234,41 @@ func handleConfigSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 
-	fmt.Printf("Config updated: %s = %s\n", key, value)
+	fmt.Printf("Config updated: %s = %s (was: %v)\n", key, newValue, oldValue)
+
+	// Reload the config to show accurate values
+	updatedCfg, err := config.Load(rootCmd)
+	if err != nil {
+		return fmt.Errorf("failed to reload config: %w", err)
+	}
+
+	// Display the updated configuration
+	fmt.Println("\nUpdated configuration:")
+	fmt.Printf("  llm.provider: %s\n", updatedCfg.LLM.Provider)
+	fmt.Printf("  llm.model: %s\n", updatedCfg.LLM.Model)
+
+	// Only show API key if present, but mask it
+	if updatedCfg.LLM.APIKey != "" {
+		maskedKey := maskString(updatedCfg.LLM.APIKey)
+		fmt.Printf("  llm.api_key: %s\n", maskedKey)
+	} else {
+		fmt.Printf("  llm.api_key: <not set>\n")
+	}
+
+	fmt.Printf("  llm.safe_mode: %t\n", updatedCfg.LLM.SafeMode)
+
+	// Show options if there are any
+	if len(updatedCfg.LLM.Options) > 0 {
+		fmt.Println("  llm.options:")
+		for k, v := range updatedCfg.LLM.Options {
+			fmt.Printf("    %s: %s\n", k, v)
+		}
+	}
+
+	fmt.Printf("  ui.debug: %t\n", updatedCfg.UI.Debug)
+	fmt.Printf("  ui.streaming: %t\n", updatedCfg.UI.Streaming)
+	fmt.Printf("  ui.render_markdown: %t\n", updatedCfg.UI.RenderMarkdown)
+
 	return nil
 }
 

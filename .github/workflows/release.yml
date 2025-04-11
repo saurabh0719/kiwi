@@ -1,0 +1,73 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Kiwi
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            output: kiwi-linux-amd64
+          - goos: darwin
+            goarch: amd64
+            output: kiwi-macos-amd64
+          - goos: windows
+            goarch: amd64
+            output: kiwi-windows-amd64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -ldflags="-s -w" -o ${{ matrix.output }} ./cmd/kiwi
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}
+          
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Create release directory
+        run: mkdir -p release
+        
+      - name: Copy artifacts to release directory
+        run: |
+          find . -type f -name "kiwi-*" -exec cp {} release/ \;
+          cd release
+          sha256sum * > checksums.txt
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
+          generate_release_notes: true 

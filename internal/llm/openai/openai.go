@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -24,10 +23,7 @@ type Adapter struct {
 // New creates a new OpenAI adapter
 func New(model, apiKey string, tools *tools.Registry) (*Adapter, error) {
 	if apiKey == "" {
-		apiKey = os.Getenv("OPENAI_API_KEY")
-		if apiKey == "" {
-			return nil, fmt.Errorf("OpenAI API key not found")
-		}
+		return nil, fmt.Errorf("OpenAI API key must be set in config file using 'kiwi config set llm.api_key <your-key>'")
 	}
 
 	client := openaiapi.NewClient(apiKey)
@@ -106,7 +102,7 @@ func (a *Adapter) ChatWithMetrics(ctx context.Context, messages []core.Message) 
 
 	// Prepare the initial messages and request
 	openaiMessages := a.prepareInitialMessages(messages)
-	req := a.createChatCompletionRequest(openaiMessages, false) // false = not streaming
+	req := a.createChatCompletionRequest(openaiMessages, false)
 
 	var finalResponse string
 	var totalPromptTokens, totalCompletionTokens int

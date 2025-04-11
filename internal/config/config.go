@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,8 +20,11 @@ type LLMConfig struct {
 
 // UIConfig represents UI and display settings
 type UIConfig struct {
-	Debug     bool `mapstructure:"debug"`
-	Streaming bool `mapstructure:"streaming"`
+	Debug              bool   `mapstructure:"debug"`
+	Streaming          bool   `mapstructure:"streaming"`
+	InteractiveHistory bool   `mapstructure:"interactive_history"`
+	Theme              string `mapstructure:"theme"`
+	RenderMarkdown     bool   `mapstructure:"render_markdown"`
 }
 
 // Config represents the overall application configuration
@@ -40,9 +42,8 @@ func getConfigDir() (string, error) {
 	return filepath.Join(homeDir, ".kiwi"), nil
 }
 
-// Load loads configuration from various sources
+// Load loads configuration from config file and command-line flags
 func Load(rootCmd *cobra.Command) (*Config, error) {
-	// Set up viper
 	v := viper.New()
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
@@ -52,7 +53,26 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Add standard config locations
 	v.AddConfigPath(configDir)
+	v.AddConfigPath(".")
+
+	// Check if config file path is provided via flag
+	configPath, err := rootCmd.Flags().GetString("config-path")
+	if err == nil && configPath != "" {
+		// If absolute path is provided, use it directly
+		if filepath.IsAbs(configPath) {
+			v.SetConfigFile(configPath)
+		} else {
+			// For relative paths, ensure they're relative to working directory
+			absPath, err := filepath.Abs(configPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve config path: %w", err)
+			}
+			v.SetConfigFile(absPath)
+		}
+	}
 
 	// Set defaults
 	v.SetDefault("llm.provider", "openai")
@@ -63,6 +83,9 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	// Set UI defaults
 	v.SetDefault("ui.debug", false)
 	v.SetDefault("ui.streaming", true)
+	v.SetDefault("ui.interactive_history", true)
+	v.SetDefault("ui.theme", "default")
+	v.SetDefault("ui.render_markdown", false)
 
 	// Create config directory if it doesn't exist
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -75,11 +98,6 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 	}
-
-	// Read from environment
-	v.SetEnvPrefix("KIWI")
-	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Read from flags
 	if err := v.BindPFlag("llm.provider", rootCmd.Flags().Lookup("provider")); err != nil {
@@ -99,6 +117,9 @@ func Load(rootCmd *cobra.Command) (*Config, error) {
 	}
 	if err := v.BindPFlag("ui.streaming", rootCmd.Flags().Lookup("streaming")); err != nil {
 		return nil, fmt.Errorf("failed to bind streaming flag: %w", err)
+	}
+	if err := v.BindPFlag("ui.render_markdown", rootCmd.Flags().Lookup("render-markdown")); err != nil {
+		return nil, fmt.Errorf("failed to bind render-markdown flag: %w", err)
 	}
 
 	var config Config
@@ -132,6 +153,9 @@ func (c *Config) Save() error {
 	// Set UI values
 	v.Set("ui.debug", c.UI.Debug)
 	v.Set("ui.streaming", c.UI.Streaming)
+	v.Set("ui.interactive_history", c.UI.InteractiveHistory)
+	v.Set("ui.theme", c.UI.Theme)
+	v.Set("ui.render_markdown", c.UI.RenderMarkdown)
 
 	// Write to file
 	configPath := filepath.Join(configDir, "config.yaml")

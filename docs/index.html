@@ -158,6 +158,36 @@ HTML is a cornerstone technology of the World Wide Web, working alongside CSS (C
                     </div>
                 </div>
                 <div class="example-card">
+                    <h3>💾 Session Management</h3>
+                    <div class="code-block">
+                        <pre><code>$ kiwi -s
+Available sessions:
+--------------------------------------------------
+1. ID: 1743613316 (Apr 2, 2025 22:31)
+   Summary: okay now tell me what golang is
+   Messages: 4
+--------------------------------------------------
+
+Commands:
+- Continue: kiwi -s -o &lt;id&gt;
+- Delete:   kiwi -s -d &lt;id&gt;
+- New:      kiwi -s -n &lt;name&gt;
+
+$ kiwi -s -o 1743613316
+
+Last messages from this conversation:
+----------------------------------------
+You: okay now tell me what golang is
+Kiwi: Go, often referred to as Golang, is a statically typed, compiled...
+----------------------------------------
+
+Continuing session: 1743613316
+Assistant session continued. Type 'exit' to end the session.
+Previous conversation has 4 messages.
+Using openai model: gpt-4o</code></pre>
+                    </div>
+                </div>
+                <div class="example-card">
                     <h3>🛠️ Built-in Tools</h3>
                     <div class="code-block">
                         <pre><code>$ kiwi summarise the contents of this directory
