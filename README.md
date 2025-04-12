@@ -1,5 +1,7 @@
 # Kiwi
 
+### :heavy_exclamation_mark: Actively looking for contributors to add more LLM integrations + expand the tools library!
+
 ![Image](https://github.com/user-attachments/assets/9e323659-f603-4b8f-8a24-da5f19169c38)
 
 A command-line interface (CLI) for interacting with Large Language Models (LLMs) directly from your terminal.
