@@ -1,9 +1,17 @@
-name: Build and Release
+name: Manual Build and Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build release from (e.g., v0.0.2)'
+        required: true
+        type: string
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -27,10 +35,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
 
@@ -41,7 +51,7 @@ jobs:
         run: go build -ldflags="-s -w" -o ${{ matrix.output }} ./cmd/kiwi
           
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.output }}
           path: ${{ matrix.output }}
@@ -50,12 +60,15 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.create_release == 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
         
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: Create release directory
         run: mkdir -p release
@@ -69,5 +82,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.event.inputs.tag }}
           files: release/*
-          generate_release_notes: true 
+          generate_release_notes: true
